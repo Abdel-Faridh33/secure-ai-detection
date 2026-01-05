@@ -1,0 +1,294 @@
+\section{Architecture et déploiement en production}
+
+Le modèle sécurisé entraîné en développement (section 3.4) doit être déployé dans un environnement de production garantissant la disponibilité, la sécurité des accès, et la traçabilité complète des opérations. Cette section présente l'architecture de production multi-conteneurs intégrant deux zones de sécurité critiques : la Zone 4 (sécurisation des accès et détection d'anomalies) et la Zone 5 (gouvernance, audit et monitoring).
+
+\subsection{Architecture Docker de production}
+
+L'architecture de production repose sur une infrastructure containerisée orchestrée par Docker Compose, avec Nginx comme reverse proxy frontal et deux instances d'API FastAPI servant les modèles baseline et sécurisé. La figure~\ref{fig:architecture_production} illustre le flux complet depuis l'utilisateur jusqu'aux logs d'audit.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/architecture_production_secured.png}
+    \caption{Architecture de production : flux utilisateur, zones de sécurité 4-5, et composants}
+    \label{fig:architecture_production}
+\end{figure}
+
+\paragraph{Stack Docker de production}
+
+L'environnement de production déploie 9 services dans la configuration STANDARD (\texttt{docker-compose.prod.yml}) :
+
+\begin{itemize}
+    \item \textbf{2 APIs FastAPI} : \texttt{baseline-api} (port 8001) et \texttt{secured-api} (port 8002) servant les modèles respectifs
+    \item \textbf{Nginx} : Reverse proxy HTTPS (port 443) avec load balancing et terminaison SSL
+    \item \textbf{PostgreSQL 15} : Base de données pour users, audit logs, et IPs bloquées par le WAF
+    \item \textbf{Redis 7} : Cache pour sessions JWT, compteurs de rate limiting, et prédictions fréquentes
+    \item \textbf{Prometheus} : Collecte de métriques temps réel (requêtes/sec, latence, accuracy)
+    \item \textbf{Grafana} : Dashboards de monitoring avec alerting configuré
+    \item \textbf{Web Frontend} : Interface HTML/JS servie par Nginx pour soumission d'images
+    \item \textbf{Admin Dashboard} : Interface de gestion (users, audit, métriques de sécurité)
+\end{itemize}
+
+Les services communiquent via un réseau bridge isolé (\texttt{secure-ai-prod}). PostgreSQL et Redis exposent leurs ports uniquement sur localhost (127.0.0.1) pour éviter l'accès externe. Les APIs sont configurées avec des limites de ressources (2 CPU, 4GB RAM) et une politique de restart automatique (\texttt{unless-stopped}).
+
+\paragraph{Nginx reverse proxy et routage}
+
+Nginx (\texttt{docker/nginx.conf}) agit comme point d'entrée unique HTTPS, routant les requêtes selon l'endpoint :
+
+\begin{itemize}
+    \item \texttt{/predict/baseline} → \texttt{baseline-api:8000}
+    \item \texttt{/predict/secured} → \texttt{secured-api:8000}
+    \item \texttt{/security/*} → \texttt{secured-api:8000} (auth, WAF, anomalies)
+    \item \texttt{/audit/*} → \texttt{secured-api:8000} (logs, stats, export)
+    \item \texttt{/} → \texttt{web:80} (interface HTML statique)
+\end{itemize}
+
+Le proxy préserve l'IP réelle du client via les headers \texttt{X-Real-IP} et \texttt{X-Forwarded-For}, essentiels pour le rate limiting WAF par IP. La configuration active la compression gzip pour optimiser la bande passante et configure CORS pour autoriser les requêtes cross-origin depuis l'interface web. Le certificat SSL (Let's Encrypt ou auto-signé) assure le chiffrement TLS 1.3 avec suite de chiffrement forte (ECDHE-RSA-AES256-GCM-SHA384).
+
+\paragraph{Configurations de déploiement adaptatives}
+
+Trois configurations Docker Compose permettent d'adapter le déploiement aux contraintes de ressources :
+
+\textbf{Configuration MINIMAL} (\texttt{docker-compose.prod.MINIMAL.yml}) : 5 services (APIs, Nginx, Prometheus, Grafana) sans PostgreSQL ni Redis. L'audit s'écrit en JSONL sur disque (\texttt{logs/audit.jsonl}), le WAF stocke les compteurs en mémoire (perdus au redémarrage). Convient aux environnements de test ou déploiements à faible charge (<10 req/min).
+
+\textbf{Configuration STANDARD} (\texttt{docker-compose.prod.yml}) : 9 services avec PostgreSQL et Redis. Audit persistant en base, WAF avec rate limiting Redis (survit au redémarrage), cache de prédictions. Limites de ressources configurées (2 CPU, 4GB RAM par API). Recommandé pour production avec charge modérée (10-100 req/min).
+
+\textbf{Configuration COMPLETE} (\texttt{docker-compose.prod.COMPLETE.yml}) : 11 services ajoutant Loki (agrégation de logs), Promtail (collecte de logs), et AlertManager (notifications Slack/email). Observabilité complète avec requêtes Loki depuis Grafana, alerting 24/7 sur seuils critiques (taux d'erreur >10\%, latence P95 >2s, accuracy <80\%). Convient aux environnements critiques nécessitant SLA strict.
+
+
+\subsection{Zone 4 : Sécurisation en production}
+
+La Zone 4 implémente quatre couches de défense protégeant l'API contre les accès non autorisés, les abus, et les comportements anormaux. Ces mécanismes s'appliquent avant toute inférence du modèle.
+
+\paragraph{Web Application Firewall (WAF)}
+
+Le WAF (\texttt{src/api/waf.py}) applique un rate limiting strict par IP et détecte les patterns d'attaque. Chaque requête entrante est vérifiée en trois étapes :
+
+\begin{enumerate}
+    \item \textbf{Rate Limiting} : 100 requêtes par minute par IP (compteur Redis avec TTL 60s). Dépassement → HTTP 429 Too Many Requests, IP bloquée 15 minutes.
+    \item \textbf{Détection SQL Injection} : Regex sur les paramètres détectant les patterns \texttt{UNION SELECT}, \texttt{DROP TABLE}, \texttt{--}, \texttt{;--}. Match → HTTP 403 Forbidden, IP blacklistée.
+    \item \textbf{Détection XSS} : Regex détectant \texttt{<script>}, \texttt{onerror=}, \texttt{javascript:}. Match → requête rejetée, événement loggé.
+\end{enumerate}
+
+Les IPs bloquées sont stockées dans PostgreSQL (\texttt{waf\_blocked\_ips} table) avec timestamp, raison, et durée du blocage. L'endpoint \texttt{GET /security/waf/status} expose le nombre d'IPs bloquées, le total de requêtes traitées, et les top attaquants. Un job cron nettoie les blocs expirés toutes les heures.
+
+\paragraph{Authentification JWT et gestion des sessions}
+
+L'authentification JWT (\texttt{src/api/security\_endpoints.py}) utilise l'algorithme RS256 avec paire de clés RSA-2048. Le flux d'authentification est le suivant :
+
+\begin{enumerate}
+    \item \textbf{Login} (\texttt{POST /security/login}) : Vérification username/password contre PostgreSQL (hash bcrypt). Succès → génération de deux tokens :
+    \begin{itemize}
+        \item \textit{Access token} : Validité 15 minutes, contient \texttt{user\_id}, \texttt{role}, \texttt{permissions}
+        \item \textit{Refresh token} : Validité 7 jours, stocké dans Redis avec user\_id comme clé
+    \end{itemize}
+    \item \textbf{Vérification} : Chaque endpoint protégé valide l'access token (signature RSA, expiration). Échec → HTTP 401 Unauthorized.
+    \item \textbf{Refresh} (\texttt{POST /security/refresh}) : Renouvellement de l'access token avec refresh token valide, sans re-login.
+    \item \textbf{Logout} (\texttt{POST /security/logout}) : Suppression du refresh token de Redis, invalidation immédiate.
+\end{enumerate}
+
+La clé privée RSA est stockée chiffrée avec AES-256 (mot de passe en variable d'environnement \texttt{JWT\_PRIVATE\_KEY\_PASSWORD}). La clé publique est accessible via \texttt{GET /security/.well-known/jwks.json} pour validation externe. L'expiration courte de l'access token (15 min) limite l'exposition en cas de vol.
+
+\paragraph{Contrôle d'accès basé sur les rôles (RBAC)}
+
+Le système RBAC définit trois rôles avec matrice de permissions stockée en PostgreSQL :
+
+\begin{itemize}
+    \item \textbf{Guest} : Accès lecture seule aux endpoints de prédiction (\texttt{POST /predict/*}). Pas d'accès aux logs d'audit ni aux métriques.
+    \item \textbf{Agent} : Permissions Guest + accès lecture aux logs d'audit (\texttt{GET /audit/logs}, \texttt{GET /audit/predictions/*}). Peut exporter l'audit au format JSON/CSV.
+    \item \textbf{Admin} : Permissions Agent + gestion des utilisateurs (\texttt{GET /security/users}, \texttt{DELETE /security/users/*}), accès aux métriques de sécurité (\texttt{GET /security/waf/status}, \texttt{GET /security/anomalies/*}), et dashboard de monitoring Grafana.
+\end{itemize}
+
+Chaque endpoint protégé décore sa fonction avec \texttt{@require\_role(['admin', 'agent'])}. Le middleware vérifie que le rôle JWT est dans la liste autorisée, sinon renvoie HTTP 403 Forbidden. La matrice de permissions est configurable en base sans redéploiement.
+
+\paragraph{Détection d'anomalies comportementales}
+
+Le détecteur d'anomalies (\texttt{src/api/anomaly\_detector.py}) utilise Isolation Forest (scikit-learn) entraîné sur les features suivantes extraites de chaque requête :
+
+\begin{itemize}
+    \item Fréquence de requêtes par IP (fenêtre glissante 1 minute)
+    \item Diversité des endpoints appelés (entropie)
+    \item Taille moyenne des images uploadées
+    \item Ratio erreurs 4xx/5xx vs succès 2xx
+    \item Temps moyen entre requêtes consécutives
+\end{itemize}
+
+Le modèle Isolation Forest (100 arbres, contamination 5\%) calcule un score d'anomalie entre 0 (normal) et 1 (anomalie). Un seuil de 0.7 déclenche une alerte :
+
+\begin{itemize}
+    \item \textbf{Score 0.7-0.85} : Surveillance renforcée, log événement
+    \item \textbf{Score 0.85-0.95} : Limitation temporaire (50 req/min au lieu de 100)
+    \item \textbf{Score >0.95} : Blocage automatique 1 heure, notification admin
+\end{itemize}
+
+Les scores d'anomalie sont mis en cache Redis (TTL 10 minutes) et affichés dans le dashboard administratif (\texttt{GET /security/anomalies/recent}). L'endpoint \texttt{GET /security/anomalies/ip/\{ip\}} retourne l'historique détaillé d'une IP (requêtes, scores, événements).
+
+
+\subsection{Zone 5 : Gouvernance et audit}
+
+La Zone 5 garantit la traçabilité complète des opérations, la conformité RGPD, et l'observabilité temps réel du système via trois piliers : audit immuable, monitoring Prometheus/Grafana, et logs structurés.
+
+\paragraph{Logs d'audit immuables}
+
+L'audit logger (\texttt{src/api/audit\_logger.py}) enregistre chaque événement critique dans PostgreSQL avec garantie d'immuabilité via hash chain SHA-256 :
+
+\begin{enumerate}
+    \item \textbf{Événements tracés} :
+    \begin{itemize}
+        \item \texttt{PREDICTION} : Timestamp, IP source (pseudonymisée), user\_id, model\_type, prediction, confidence, durée d'inférence, hash de l'image
+        \item \texttt{AUTH\_SUCCESS} / \texttt{AUTH\_FAILURE} : Username, IP, user-agent
+        \item \texttt{WAF\_BLOCK} : IP, raison, endpoint tenté
+        \item \texttt{ANOMALY\_DETECTED} : IP, score, features
+        \item \texttt{ADMIN\_ACTION} : user\_id, action (create\_user, delete\_user, export\_audit)
+    \end{itemize}
+    \item \textbf{Hash Chain} : Chaque log contient le hash SHA-256 du log précédent, créant une blockchain d'audit. Toute modification rétroactive est détectable (hash incohérent).
+    \item \textbf{Pseudonymisation RGPD} : Les IPs sont hachées avec HMAC-SHA256 (clé secrète) avant stockage. La clé permet de retrouver l'IP originale pour investigation, mais les logs stockés sont anonymisés.
+\end{enumerate}
+
+Les logs sont indexés par timestamp et user\_id pour requêtes rapides. L'endpoint \texttt{GET /audit/logs} supporte la pagination (100 entrées par page), le filtrage par type d'événement, et la recherche full-text (\texttt{GET /audit/search?q=dangerous}). L'export complet (\texttt{POST /audit/export}) génère un fichier JSON ou CSV signé numériquement (RSA-4096) pour preuve d'intégrité lors d'audits externes.
+
+\paragraph{Monitoring temps réel avec Prometheus et Grafana}
+
+Prometheus (\texttt{configs/monitoring/prometheus.yml}) scrape les métriques des deux APIs toutes les 15 secondes via l'endpoint \texttt{/metrics}. Les métriques exportées incluent :
+
+\begin{itemize}
+    \item \textbf{Compteurs} :
+    \begin{itemize}
+        \item \texttt{http\_requests\_total\{method, endpoint, status\}} : Total de requêtes HTTP
+        \item \texttt{ai\_model\_predictions\_total\{model\_type, prediction\}} : Prédictions safe/dangerous par modèle
+        \item \texttt{waf\_blocks\_total\{reason\}} : Blocages WAF par raison (rate\_limit, sql\_injection, xss)
+        \item \texttt{anomaly\_detections\_total\{severity\}} : Anomalies détectées par sévérité
+    \end{itemize}
+    \item \textbf{Histogrammes} :
+    \begin{itemize}
+        \item \texttt{request\_duration\_seconds\{endpoint\}} : Distribution de latence (P50, P95, P99)
+        \item \texttt{model\_inference\_duration\_seconds\{model\_type\}} : Temps d'inférence PyTorch
+    \end{itemize}
+    \item \textbf{Gauges} :
+    \begin{itemize}
+        \item \texttt{ai\_model\_accuracy\{model\_type\}} : Accuracy courante (fenêtre glissante 1h)
+        \item \texttt{active\_jwt\_sessions} : Nombre de sessions JWT actives (compteur Redis)
+        \item \texttt{postgres\_connections} : Connexions PostgreSQL actives
+    \end{itemize}
+\end{itemize}
+
+Grafana (\texttt{configs/grafana/dashboards/}) affiche 5 dashboards pré-configurés :
+
+\begin{enumerate}
+    \item \textbf{Overview} : Requêtes/sec, latence P95, taux d'erreur, uptime
+    \item \textbf{Security} : WAF blocks, anomalies, tentatives d'auth échouées, top IPs suspectes
+    \item \textbf{Models} : Accuracy baseline vs secured, distribution prédictions safe/dangerous, temps d'inférence
+    \item \textbf{Anomalies} : Scores d'anomalie temps réel, IPs à haut risque, événements de blocage
+    \item \textbf{Audit} : Nombre de logs générés, top users, export d'audit, hash chain integrity
+\end{enumerate}
+
+Les règles d'alerte (\texttt{configs/monitoring/alert\_rules.yml}) se déclenchent sur des seuils critiques et notifient via AlertManager (Slack, email, PagerDuty) :
+
+\begin{itemize}
+    \item Taux d'erreur HTTP 5xx >10\% pendant 5 minutes → Alerte \texttt{HighErrorRate}
+    \item Latence P95 >2 secondes pendant 10 minutes → Alerte \texttt{HighLatency}
+    \item Accuracy <80\% sur fenêtre glissante 1h → Alerte \texttt{ModelDegradation}
+    \item Anomaly score moyen >0.8 pendant 15 minutes → Alerte \texttt{AnomalySpike}
+    \item PostgreSQL ou Redis indisponibles → Alerte critique \texttt{ServiceDown}
+\end{itemize}
+
+\paragraph{Logs applicatifs structurés}
+
+Les APIs génèrent des logs structurés au format JSON (\texttt{src/api/logger.py}) avec rotation automatique (7 jours, max 100MB par fichier) :
+
+\begin{lstlisting}[language=JSON, caption=Exemple de log structuré]
+{
+  "timestamp": "2025-12-29T14:23:45.123Z",
+  "level": "INFO",
+  "service": "secured-api",
+  "event": "prediction_success",
+  "request_id": "a3f2b1c4-5e6d-7f8a-9b0c-1d2e3f4a5b6c",
+  "user_id": "agent_001",
+  "ip": "192.168.1.42",
+  "model": "secured",
+  "prediction": "dangerous",
+  "confidence": 0.94,
+  "inference_duration_ms": 87,
+  "waf_score": 0.12,
+  "anomaly_score": 0.35
+}
+\end{lstlisting}
+
+Les champs standardisés (\texttt{timestamp}, \texttt{level}, \texttt{service}, \texttt{request\_id}) permettent la corrélation entre logs de différents services. Le \texttt{request\_id} unique suit une requête à travers Nginx, WAF, JWT, API, et audit logger. Dans la configuration COMPLETE, Promtail collecte ces logs et les envoie à Loki pour requêtes centralisées depuis Grafana (LogQL queries).
+
+
+\subsection{Pipeline CI/CD et tests automatisés}
+
+Le déploiement continu (\texttt{.github/workflows/deploy-production.yml}) automatise les tests de sécurité, la construction des images Docker, et le déploiement avec rollback automatique en cas d'échec.
+
+\paragraph{Workflow GitHub Actions}
+
+Le pipeline CI/CD se déclenche sur chaque push vers \texttt{main} et exécute 6 jobs séquentiels avec dépendances :
+
+\begin{enumerate}
+    \item \textbf{security-tests} :
+    \begin{itemize}
+        \item Tests unitaires (\texttt{pytest}) : validation des endpoints, WAF, JWT, anomaly detector
+        \item Scan de sécurité Bandit : détection de vulnérabilités Python (niveau LL : high severity uniquement)
+        \item Audit de dépendances Safety : identification des CVE dans \texttt{requirements.txt}
+    \end{itemize}
+    \item \textbf{build-production} :
+    \begin{itemize}
+        \item Construction de 2 images Docker (\texttt{Dockerfile.baseline}, \texttt{Dockerfile.secured})
+        \item Test des imports critiques (\texttt{docker run image python -c "import fastapi, torch"})
+        \item Scan de vulnérabilités Trivy sur les images (sévérité HIGH et CRITICAL uniquement)
+    \end{itemize}
+    \item \textbf{deploy} :
+    \begin{itemize}
+        \item Lancement du stack \texttt{docker-compose.prod.yml}
+        \item Attente des health checks (timeout 60s) sur \texttt{/health} des deux APIs
+        \item Vérification Prometheus \texttt{/-/healthy} et Grafana \texttt{/api/health}
+    \end{itemize}
+    \item \textbf{smoke-tests} :
+    \begin{itemize}
+        \item Test prédiction baseline avec \texttt{sample\_safe.jpg} → vérification réponse contient "safe"
+        \item Test prédiction secured avec \texttt{sample\_dangerous.jpg} → vérification réponse contient "dangerous"
+        \item Test interface web accessible \texttt{http://localhost:8080}
+        \item Test métriques Prometheus \texttt{http://localhost:9090/metrics}
+    \end{itemize}
+    \item \textbf{integration-tests} :
+    \begin{itemize}
+        \item Test du flux complet : login JWT → prédiction secured → récupération audit log
+        \item Test rate limiting WAF : envoi de 150 requêtes en 1 min → vérification HTTP 429
+        \item Test anomaly detection : simulation de comportement anormal → vérification blocage
+    \end{itemize}
+    \item \textbf{rollback} (conditionnel, si échec précédent) :
+    \begin{itemize}
+        \item Arrêt immédiat \texttt{docker-compose down}
+        \item Nettoyage containers/volumes \texttt{docker system prune -f}
+        \item Notification Slack/email avec logs d'erreur
+    \end{itemize}
+\end{enumerate}
+
+Le workflow utilise \texttt{needs} pour garantir l'ordre d'exécution : \texttt{build-production} attend \texttt{security-tests}, \texttt{deploy} attend \texttt{build-production}, etc. Le job \texttt{rollback} ne s'exécute qu'en cas d'échec (\texttt{if: failure()}), garantissant qu'un déploiement défaillant n'impacte jamais la production.
+
+\paragraph{Commandes Makefile pour opérations manuelles}
+
+Le Makefile (\texttt{Makefile}) fournit des raccourcis pour déploiements manuels et maintenance :
+
+\begin{itemize}
+    \item \texttt{make prod} : Build complet + déploiement STANDARD (rebuild images)
+    \item \texttt{make prod-fast} : Déploiement rapide sans rebuild (<30 secondes)
+    \item \texttt{make prod-complete} : Déploiement COMPLETE avec Loki/AlertManager
+    \item \texttt{make health-prod} : Vérification health checks tous services
+    \item \texttt{make logs-prod} : Logs en temps réel (tail -f) de tous les containers
+    \item \texttt{make status-prod} : Statut des containers (running, exited, restart count)
+    \item \texttt{make test-prod} : Exécution des smoke tests post-déploiement
+    \item \texttt{make stop-prod} : Arrêt propre avec préservation des volumes
+    \item \texttt{make clean-prod} : Arrêt + suppression volumes (reset complet)
+\end{itemize}
+
+La commande \texttt{make prod} exécute séquentiellement :
+\begin{enumerate}
+    \item \texttt{docker-compose -f docker-compose.prod.yml build}
+    \item \texttt{docker-compose -f docker-compose.prod.yml up -d}
+    \item Attente 30s (démarrage PostgreSQL/Redis)
+    \item Exécution des health checks
+    \item Affichage du statut final
+\end{enumerate}
+
+En cas d'erreur durant le déploiement, le Makefile affiche les logs du service défaillant et propose un rollback automatique (\texttt{make stop-prod}).

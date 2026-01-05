@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramme de Flux de Données</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .diagram-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .diagram-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1976D2;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .instructions code {
+            background-color: #263238;
+            color: #aed581;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .export-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Diagrammes de Flux de Données du Système</h1>
+
+    <!-- PHASE 1 : PRÉPARATION DES DONNÉES -->
+    <div class="diagram-container">
+        <div class="diagram-title">Phase 1 : Préparation des Données</div>
+        <div class="mermaid">
+graph TB
+    KG[Dataset Kaggle<br/>Images d'armes]
+    CO[Dataset COCO<br/>Images sûres]
+
+    KG --> MG[Data Merger<br/>Fusion des sources]
+    CO --> MG
+
+    MG --> PP[Preprocessing<br/>- Resize 224x224<br/>- Normalisation<br/>- Format conversion]
+
+    PP --> SP[Data Splitter<br/>- Train: 70%<br/>- Val: 15%<br/>- Test: 15%]
+
+    SP --> TR[Train Set<br/>1,398 images]
+    SP --> VA[Val Set<br/>294 images]
+    SP --> TE[Test Set<br/>204 images]
+
+    style KG fill:#ffcdd2,stroke:#d32f2f
+    style CO fill:#c8e6c9,stroke:#388e3c
+    style MG fill:#fff9c4,stroke:#f57c00
+    style PP fill:#e1bee7,stroke:#7b1fa2
+    style SP fill:#b3e5fc,stroke:#0288d1
+    style TR fill:#c5e1a5,stroke:#689f38
+    style VA fill:#ffe0b2,stroke:#f57c00
+    style TE fill:#ffccbc,stroke:#ff5722
+        </div>
+        <button onclick="downloadDiagram(0, 'phase1_preparation')">📥 Télécharger Phase 1</button>
+    </div>
+
+    <!-- PHASE 2 : ENTRAÎNEMENT -->
+    <div class="diagram-container">
+        <div class="diagram-title">Phase 2 : Entraînement</div>
+        <div class="mermaid">
+graph TB
+    TRS[Train Set]
+
+    TRS --> AUG[Data Augmentation<br/>- Rotation ±20°<br/>- Horizontal flip<br/>- Zoom 0.8-1.2<br/>- Brightness ±20%]
+
+    AUG --> STD[Standard Training<br/>Batch]
+    AUG --> ADV_GEN[Adversarial Generator<br/>- FGSM ε=0.03<br/>- PGD steps=10]
+
+    ADV_GEN --> ADV[Adversarial Training<br/>Batch]
+
+    STD --> MOD[MobileNetV2 Model<br/><br/>Forward pass<br/>Loss calculation<br/>Backpropagation<br/>Weight update]
+    ADV --> MOD
+
+    MOD --> VAL{Validation<br/>on Val Set}
+
+    VAL --> BEST{Best<br/>model?}
+
+    BEST -->|Oui| SAVE[Save Checkpoint<br/>Best model]
+    BEST -->|Non| CONT[Continue training]
+
+    SAVE --> CONV{Convergence?}
+    CONT --> CONV
+
+    CONV -->|Non| TRS
+    CONV -->|Oui| FINAL[Final Model<br/>Secured]
+
+    style TRS fill:#c5e1a5,stroke:#689f38
+    style AUG fill:#fff9c4,stroke:#f57c00
+    style STD fill:#b3e5fc,stroke:#0288d1
+    style ADV_GEN fill:#ffcdd2,stroke:#d32f2f
+    style ADV fill:#ffccbc,stroke:#ff5722
+    style MOD fill:#ce93d8,stroke:#8e24aa
+    style VAL fill:#90caf9,stroke:#1976d2
+    style BEST fill:#ffab91,stroke:#e64a19
+    style SAVE fill:#a5d6a7,stroke:#43a047
+    style CONV fill:#ffcc80,stroke:#fb8c00
+    style FINAL fill:#81c784,stroke:#388e3c,stroke-width:3px
+        </div>
+        <button onclick="downloadDiagram(1, 'phase2_entrainement')">📥 Télécharger Phase 2</button>
+    </div>
+
+    <!-- PHASE 3 : ÉVALUATION -->
+    <div class="diagram-container">
+        <div class="diagram-title">Phase 3 : Évaluation</div>
+        <div class="mermaid">
+graph TB
+    FM[Final Model]
+
+    FM --> EVC[Evaluation<br/>Clean Test Set]
+    FM --> ATF[Attack Generator<br/>FGSM<br/>ε ∈ [0, 0.3]]
+    FM --> ATP[Attack Generator<br/>PGD<br/>ε ∈ [0, 0.1]]
+
+    EVC --> CLN[Clean Accuracy<br/>Standard performance]
+
+    ATF --> FGSM_SET[FGSM Adversarial<br/>Test Set]
+    ATP --> PGD_SET[PGD Adversarial<br/>Test Set]
+
+    FGSM_SET --> EF[Evaluation<br/>on FGSM]
+    PGD_SET --> EP[Evaluation<br/>on PGD]
+
+    CLN --> COMP[Robustness Comparison<br/><br/>- Baseline vs Secured<br/>- Accuracy curves<br/>- Confusion matrices<br/>- ROC curves]
+    EF --> COMP
+    EP --> COMP
+
+    COMP --> REP[Generate Reports<br/><br/>- Metrics tables<br/>- Visualizations<br/>- Performance analysis<br/>- PDF/HTML reports]
+
+    style FM fill:#81c784,stroke:#388e3c,stroke-width:3px
+    style EVC fill:#b3e5fc,stroke:#0288d1
+    style ATF fill:#ffcdd2,stroke:#d32f2f
+    style ATP fill:#ffccbc,stroke:#ff5722
+    style CLN fill:#c5e1a5,stroke:#689f38
+    style FGSM_SET fill:#ffab91,stroke:#e64a19
+    style PGD_SET fill:#ef9a9a,stroke:#c62828
+    style EF fill:#ffcc80,stroke:#fb8c00
+    style EP fill:#ffab91,stroke:#f57c00
+    style COMP fill:#ce93d8,stroke:#8e24aa
+    style REP fill:#90caf9,stroke:#1976d2
+        </div>
+        <button onclick="downloadDiagram(2, 'phase3_evaluation')">📥 Télécharger Phase 3</button>
+    </div>
+
+    <!-- PHASE 4 : DÉPLOIEMENT ET PRÉDICTION -->
+    <div class="diagram-container">
+        <div class="diagram-title">Phase 4 : Déploiement et Prédiction</div>
+        <div class="mermaid">
+graph TB
+    FM[Final Secured<br/>Model .h5]
+
+    FM --> DC[Docker Container<br/>- Model loaded<br/>- API running<br/>- Port 8000]
+
+    DC --> WI[Web Interface<br/>User uploads image]
+
+    WI --> POST[HTTP POST<br/>/predict<br/>image data]
+
+    POST --> API[API Server<br/>Receive image]
+
+    API --> PRE[Preprocessing<br/>- Resize 224x224<br/>- Normalize<br/>- Format tensor]
+
+    PRE --> INF[Model Inference<br/>- Forward pass<br/>- Get prediction]
+
+    INF --> POSTP[Postprocessing<br/>- Get class<br/>- Confidence score<br/>- Format JSON]
+
+    POSTP --> RES[HTTP Response<br/><br/>{<br/>  class: 'dangerous',<br/>  confidence: 0.95,<br/>  safe: false<br/>}]
+
+    RES --> DISP[Display Result<br/><br/>- Show class<br/>- Show confidence<br/>- Visual feedback<br/>- Alert if weapon detected]
+
+    style FM fill:#81c784,stroke:#388e3c,stroke-width:3px
+    style DC fill:#ce93d8,stroke:#8e24aa
+    style WI fill:#b3e5fc,stroke:#0288d1
+    style POST fill:#90caf9,stroke:#1976d2
+    style API fill:#a5d6a7,stroke:#43a047
+    style PRE fill:#fff9c4,stroke:#f57c00
+    style INF fill:#e1bee7,stroke:#7b1fa2
+    style POSTP fill:#ffcc80,stroke:#fb8c00
+    style RES fill:#c5e1a5,stroke:#689f38
+    style DISP fill:#81c784,stroke:#388e3c
+        </div>
+        <button onclick="downloadDiagram(3, 'phase4_deploiement')">📥 Télécharger Phase 4</button>
+    </div>
+
+    <!-- VUE D'ENSEMBLE COMPLÈTE -->
+    <div class="diagram-container">
+        <div class="diagram-title">Vue d'ensemble : Flux complet du système</div>
+        <div class="mermaid">
+graph LR
+    subgraph "1. Données"
+        D1[Dataset<br/>Kaggle + COCO]
+        D2[Preprocessing<br/>+ Split]
+    end
+
+    subgraph "2. Entraînement"
+        T1[Augmentation<br/>+ Adversarial Gen]
+        T2[MobileNetV2<br/>Training]
+        T3[Validation<br/>+ Checkpoints]
+    end
+
+    subgraph "3. Évaluation"
+        E1[Tests<br/>Clean + Adversarial]
+        E2[Métriques<br/>+ Reports]
+    end
+
+    subgraph "4. Production"
+        P1[Docker<br/>Container]
+        P2[API REST<br/>Inference]
+        P3[Web UI<br/>Display]
+    end
+
+    D1 --> D2
+    D2 --> T1
+    T1 --> T2
+    T2 --> T3
+    T3 --> E1
+    E1 --> E2
+    E2 --> P1
+    P1 --> P2
+    P2 --> P3
+
+    style D1 fill:#ffcdd2,stroke:#d32f2f
+    style D2 fill:#e1bee7,stroke:#7b1fa2
+    style T1 fill:#fff9c4,stroke:#f57c00
+    style T2 fill:#ce93d8,stroke:#8e24aa
+    style T3 fill:#c5e1a5,stroke:#689f38
+    style E1 fill:#ffcc80,stroke:#fb8c00
+    style E2 fill:#90caf9,stroke:#1976d2
+    style P1 fill:#ce93d8,stroke:#8e24aa
+    style P2 fill:#a5d6a7,stroke:#43a047
+    style P3 fill:#b3e5fc,stroke:#0288d1
+        </div>
+        <button onclick="downloadDiagram(4, 'vue_ensemble_complete')">📥 Télécharger Vue Ensemble</button>
+    </div>
+
+    <div class="export-section">
+        <button onclick="downloadAllPNG()">📥 Télécharger TOUS les diagrammes (PNG)</button>
+        <button onclick="window.print()">🖨️ Imprimer tout</button>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions pour inclure dans le mémoire LaTeX</h3>
+        <ol>
+            <li><strong>Télécharger les diagrammes :</strong>
+                <ul>
+                    <li>Cliquez sur les boutons individuels ou "Télécharger TOUS"</li>
+                    <li>Sauvegardez dans le dossier <code>figures/</code></li>
+                </ul>
+            </li>
+            <li><strong>Fichiers générés :</strong>
+                <ul>
+                    <li><code>phase1_preparation.png</code></li>
+                    <li><code>phase2_entrainement.png</code></li>
+                    <li><code>phase3_evaluation.png</code></li>
+                    <li><code>phase4_deploiement.png</code></li>
+                    <li><code>vue_ensemble_complete.png</code></li>
+                </ul>
+            </li>
+            <li><strong>Dans votre LaTeX :</strong>
+                <ul>
+                    <li>Décommentez la ligne dans <code>Chapitre_3.1.tex</code></li>
+                    <li>Ou insérez individuellement chaque phase si nécessaire</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>🎨 Légende des couleurs</h3>
+        <ul>
+            <li><span style="background:#ffcdd2; padding:2px 8px;">Rouge clair</span> - Données sources/Attaques</li>
+            <li><span style="background:#c8e6c9; padding:2px 8px;">Vert clair</span> - Données sûres/Résultats</li>
+            <li><span style="background:#ce93d8; padding:2px 8px;">Violet</span> - Modèles/Containers</li>
+            <li><span style="background:#b3e5fc; padding:2px 8px;">Bleu clair</span> - Interfaces/API</li>
+            <li><span style="background:#fff9c4; padding:2px 8px;">Jaune</span> - Preprocessing/Augmentation</li>
+        </ul>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif'
+            }
+        });
+
+        function downloadDiagram(index, filename) {
+            const svgs = document.querySelectorAll('.mermaid svg');
+            if (!svgs[index]) {
+                alert('Veuillez attendre que les diagrammes soient chargés');
+                return;
+            }
+
+            const svg = svgs[index];
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const svgData = new XMLSerializer().serializeToString(svg);
+
+            const img = new Image();
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            img.onload = function() {
+                canvas.width = img.width * 2;
+                canvas.height = img.height * 2;
+
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(function(blob) {
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = filename + '.png';
+                    link.click();
+                    URL.revokeObjectURL(downloadUrl);
+                });
+
+                URL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+        }
+
+        function downloadAllPNG() {
+            const filenames = [
+                'phase1_preparation',
+                'phase2_entrainement',
+                'phase3_evaluation',
+                'phase4_deploiement',
+                'vue_ensemble_complete'
+            ];
+
+            filenames.forEach((filename, index) => {
+                setTimeout(() => {
+                    downloadDiagram(index, filename);
+                }, index * 500); // Délai pour éviter les problèmes de téléchargement multiple
+            });
+
+            alert('Téléchargement de tous les diagrammes démarré. Veuillez patienter...');
+        }
+    </script>
+</body>
+</html>

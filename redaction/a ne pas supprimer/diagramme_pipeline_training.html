@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline d'Entraînement Sécurisé</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .export-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .metrics-box {
+            background: #e3f2fd;
+            border: 2px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .metrics-box h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pipeline d'Entraînement Sécurisé (Zones 1-2)</h1>
+
+        <div class="note">
+            <strong>Pipeline complet:</strong> Sécurisation des données (Zone 1) → Adversarial Training FGSM (Zone 2) → Chiffrement et Signature
+        </div>
+
+        <div class="mermaid">
+graph TB
+    subgraph Zone1["ZONE 1: SECURISATION DES DONNEES"]
+        D1[(Dataset Brut<br/>1,896 images)]
+        V1[DataVerifier<br/>Chi2, Z-Score, KS<br/>Quality: 75.5/100]
+        P1[PoisoningDetector<br/>DBSCAN MobileNetV2<br/>400 suspects 28.6%]
+        Q1[Quarantaine<br/>400 images isolees<br/>data/quarantine/]
+        C1[Dataset Propre<br/>998 images<br/>50% safe, 50% dangerous]
+    end
+
+    subgraph Zone2["ZONE 2: ADVERSARIAL TRAINING FGSM"]
+        B1[Batch Clean 70%<br/>Images originales]
+        B2[Generation FGSM 30%<br/>epsilon = 0.08<br/>Perturbations adversariales]
+        M1[MobileNetV2<br/>Transfer Learning ImageNet<br/>Dropout: 0.45<br/>Gradient clipping: 1.0]
+        L1[Loss Combinee<br/>0.7*L_clean + 0.3*L_adv]
+        O1[Backpropagation<br/>Adam LR=0.0001]
+    end
+
+    subgraph Storage["STOCKAGE SECURISE ET VERSIONING"]
+        S1[best_model.pth<br/>Epoch 7<br/>Val: 89.46%]
+        S2[final_model.pth<br/>Epoch 11<br/>Train: 99.78%]
+        S3[Checkpoints<br/>epoch_5.pth<br/>epoch_10.pth]
+        S4[training_history.json<br/>Metriques par epoch]
+        E1[Chiffrement<br/>AES-256-GCM<br/>PBKDF2 100k iter]
+        E2[Signature<br/>RSA-4096<br/>SHA-256 hash]
+    end
+
+    %% Flux Zone 1
+    D1 --> V1
+    V1 --> P1
+    P1 --> Q1
+    P1 --> C1
+
+    %% Flux Zone 2
+    C1 --> B1
+    C1 --> B2
+    B1 --> M1
+    B2 --> M1
+    M1 --> L1
+    L1 --> O1
+    O1 -.Update weights.-> M1
+
+    %% Flux Stockage
+    M1 --> S1
+    M1 --> S2
+    M1 --> S3
+    M1 --> S4
+    S1 --> E1
+    S1 --> E2
+
+    %% Styles
+    classDef zone1Class fill:#e8f5e9,stroke:#4CAF50,stroke-width:3px
+    classDef zone2Class fill:#e3f2fd,stroke:#2196F3,stroke-width:3px
+    classDef storageClass fill:#fff3e0,stroke:#FF9800,stroke-width:3px
+    classDef quarantineClass fill:#ffebee,stroke:#f44336,stroke-width:2px
+    classDef resultClass fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px
+
+    class D1,V1,P1,C1 zone1Class
+    class Q1 quarantineClass
+    class B1,B2,M1,L1,O1 zone2Class
+    class S1,S2,S3,S4 storageClass
+    class E1,E2 resultClass
+        </div>
+
+        <div class="metrics-box">
+            <h3>Résultats d'Entraînement (11 epochs, ~50 min GPU T4)</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 2px solid #2196F3;">
+                    <th style="text-align: left; padding: 8px;">Métrique</th>
+                    <th style="text-align: center; padding: 8px;">Epoch 7 (Best)</th>
+                    <th style="text-align: center; padding: 8px;">Baseline</th>
+                    <th style="text-align: center; padding: 8px;">Delta</th>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">Val Accuracy</td>
+                    <td style="text-align: center; padding: 8px;"><strong>89.46%</strong></td>
+                    <td style="text-align: center; padding: 8px;">97.55%</td>
+                    <td style="text-align: center; padding: 8px; color: #f44336;">-8.09%</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">Clean Accuracy (test)</td>
+                    <td style="text-align: center; padding: 8px;">93.14%</td>
+                    <td style="text-align: center; padding: 8px;">97.55%</td>
+                    <td style="text-align: center; padding: 8px; color: #f44336;">-4.41%</td>
+                </tr>
+                <tr style="background: #e8f5e9;">
+                    <td style="padding: 8px;"><strong>FGSM Adv Accuracy</strong></td>
+                    <td style="text-align: center; padding: 8px;"><strong style="color: #4CAF50;">68.14%</strong></td>
+                    <td style="text-align: center; padding: 8px;">50.00%</td>
+                    <td style="text-align: center; padding: 8px; color: #4CAF50;"><strong>+18.14% (+36%)</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">Attack Success Rate</td>
+                    <td style="text-align: center; padding: 8px;">31.86%</td>
+                    <td style="text-align: center; padding: 8px;">50.00%</td>
+                    <td style="text-align: center; padding: 8px; color: #4CAF50;">-18.14%</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px;">Robustness Gap</td>
+                    <td style="text-align: center; padding: 8px;">25.00%</td>
+                    <td style="text-align: center; padding: 8px;">47.50%</td>
+                    <td style="text-align: center; padding: 8px; color: #4CAF50;">-22.50%</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="note">
+            <strong>Trade-off:</strong> Ratio 4:1 - Pour 1% d'accuracy propre sacrifiée, gain de 4% de robustesse adversariale
+        </div>
+
+        <div class="export-buttons">
+            <button onclick="exportAsSVG()">Télécharger SVG</button>
+            <button onclick="exportAsPNG()">Télécharger PNG</button>
+        </div>
+
+        <div class="note">
+            <strong>Légende:</strong>
+            <ul style="margin: 10px 0;">
+                <li><strong>Zone 1 (Vert):</strong> Validation statistique Chi-Square, Z-Score, KS + Détection poisoning DBSCAN → 400 images quarantined (28.6%)</li>
+                <li><strong>Zone 2 (Bleu):</strong> Adversarial Training avec mix 70% clean / 30% FGSM (ε=0.08) + Gradient clipping</li>
+                <li><strong>Stockage (Orange):</strong> Sauvegarde best_model.pth (epoch 7), final_model.pth (epoch 11), checkpoints périodiques</li>
+                <li><strong>Sécurité (Violet):</strong> Chiffrement AES-256-GCM (PBKDF2 100k iter) + Signature RSA-4096 (SHA-256)</li>
+            </ul>
+        </div>
+
+        <div class="metrics-box">
+            <h3>Hyperparamètres Optimisés</h3>
+            <ul>
+                <li><strong>Epochs:</strong> 30 (early stop at 11)</li>
+                <li><strong>Batch size:</strong> 32</li>
+                <li><strong>Learning rate:</strong> 0.0001 (Adam optimizer)</li>
+                <li><strong>Adversarial epsilon:</strong> 0.08 (training) / 0.1 (test)</li>
+                <li><strong>Mix ratio:</strong> 70% clean, 30% FGSM, 0% PGD</li>
+                <li><strong>Dropout:</strong> 0.45</li>
+                <li><strong>Gradient clipping:</strong> max_norm=1.0</li>
+                <li><strong>Differential Privacy:</strong> Disabled (performance impact)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        function exportAsSVG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'training_pipeline_secured.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Erreur lors de l\'export SVG: ' + error.message);
+            }
+        }
+
+        function exportAsPNG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+
+                img.onload = function() {
+                    canvas.width = img.width * 2;
+                    canvas.height = img.height * 2;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'training_pipeline_secured.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            } catch (error) {
+                alert('Erreur lors de l\'export PNG: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

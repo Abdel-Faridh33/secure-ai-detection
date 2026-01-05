@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Multi-Zones de Sécurité</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .export-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Architecture Multi-Zones de Sécurité</h1>
+
+        <div class="note">
+            <strong>Architecture en 5 zones:</strong> Chaque zone implémente des mécanismes de sécurité spécifiques pour protéger le pipeline ML contre les attaques adversariales et garantir la conformité réglementaire.
+        </div>
+
+        <div class="mermaid">
+graph TB
+    subgraph Zone1["Zone 1: Sécurité de la Donnée"]
+        V1[DataVerifier<br/>Tests statistiques]
+        P1[PoisoningDetector<br/>DBSCAN clustering]
+        E1[EncryptedStorage<br/>AES-256-GCM]
+    end
+
+    subgraph Zone2["Zone 2: Entraînement Sécurisé"]
+        AT[Adversarial Training<br/>FGSM/PGD]
+        DP[Differential Privacy<br/>ε-δ privacy]
+        SB[Sandbox GPU<br/>Isolation]
+    end
+
+    subgraph Zone3["Zone 3: Évaluation Robuste"]
+        AR[Adversarial Testing<br/>FGSM/PGD/C&W]
+        RC[Robustness Certification<br/>Guaranteed bounds]
+        BM[Benchmarking<br/>Clean vs Adversarial]
+    end
+
+    subgraph Zone4["Zone 4: Production Sécurisée"]
+        W1[WAF<br/>Rate limiting + Input validation]
+        J1[JWT + RBAC<br/>Authentication/Authorization]
+        A1[AnomalyDetector<br/>Behavioral analysis]
+    end
+
+    subgraph Zone5["Zone 5: Gouvernance & Audit"]
+        AL[AuditLogger<br/>Immutable logs JSONL]
+        PR[Prometheus<br/>Metrics collection]
+        GR[Grafana<br/>Dashboards + Alerting]
+    end
+
+    %% Flux de données
+    DATA[(Dataset Raw)] --> V1
+    V1 --> P1
+    P1 --> E1
+    E1 --> AT
+    AT --> DP
+    DP --> SB
+    SB --> MODEL[Model Checkpoint]
+    MODEL --> AR
+    AR --> RC
+    RC --> BM
+    BM --> DEPLOY{Deploy?}
+    DEPLOY -->|Yes| W1
+    W1 --> J1
+    J1 --> A1
+    A1 --> API[API Prediction]
+    API --> AL
+    AL --> PR
+    PR --> GR
+
+    %% Styles
+    classDef zone1Class fill:#e8f5e9,stroke:#4CAF50,stroke-width:3px
+    classDef zone2Class fill:#e3f2fd,stroke:#2196F3,stroke-width:3px
+    classDef zone3Class fill:#fff3e0,stroke:#FF9800,stroke-width:3px
+    classDef zone4Class fill:#fce4ec,stroke:#E91E63,stroke-width:3px
+    classDef zone5Class fill:#f3e5f5,stroke:#9C27B0,stroke-width:3px
+    classDef dataClass fill:#f5f5f5,stroke:#757575,stroke-width:2px
+
+    class V1,P1,E1 zone1Class
+    class AT,DP,SB zone2Class
+    class AR,RC,BM zone3Class
+    class W1,J1,A1 zone4Class
+    class AL,PR,GR zone5Class
+    class DATA,MODEL,API dataClass
+        </div>
+
+        <div class="export-buttons">
+            <button onclick="exportAsSVG()">Télécharger SVG</button>
+            <button onclick="exportAsPNG()">Télécharger PNG</button>
+        </div>
+
+        <div class="note">
+            <strong>Légende:</strong>
+            <ul style="margin: 10px 0;">
+                <li><strong>Zone 1 (Vert):</strong> Validation, détection de poisoning, chiffrement des données</li>
+                <li><strong>Zone 2 (Bleu):</strong> Entraînement adversarial avec privacy et isolation GPU</li>
+                <li><strong>Zone 3 (Orange):</strong> Tests adversariaux et certification de robustesse</li>
+                <li><strong>Zone 4 (Rose):</strong> WAF, authentification JWT, détection d'anomalies</li>
+                <li><strong>Zone 5 (Violet):</strong> Logs immutables, monitoring Prometheus/Grafana</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        function exportAsSVG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'architecture_zones_securite.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Erreur lors de l\'export SVG: ' + error.message);
+            }
+        }
+
+        function exportAsPNG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+
+                img.onload = function() {
+                    canvas.width = img.width * 2;
+                    canvas.height = img.height * 2;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'architecture_zones_securite.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            } catch (error) {
+                alert('Erreur lors de l\'export PNG: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

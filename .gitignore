@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments (non utilisé avec Docker)
+venv/
+env/
+ENV/
+
+# Models
+*.pth
+*.pt
+*.h5
+*.onnx
+models/pretrained/*
+models/baseline/*
+models/secured/*
+
+# Data
+data/raw/*
+data/processed/*
+data/poisoned/*
+*.zip
+*.tar.gz
+
+# Results
+results/*/metrics/*
+results/*/predictions/*
+results/*/logs/*
+*.csv
+*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+*.log
+.dockerignore
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Environment
+.env
+*.env.local
+
+# Temporary
+tmp/
+temp/
+*.tmp
+ 
+
+# null files
+nul

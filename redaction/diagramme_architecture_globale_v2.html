@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Globale du Système</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .diagram-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .instructions code {
+            background-color: #263238;
+            color: #aed581;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .export-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .platform-info {
+            background-color: #fff3e0;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Architecture Globale du Système de Détection Sécurisé</h1>
+
+    <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+    subgraph PRESENTATION["COUCHE DE PRÉSENTATION"]
+        WEB["Interface Web<br/>HTML/CSS/JavaScript"]
+    end
+
+    subgraph SERVICES["COUCHE DE SERVICES"]
+        API["API REST<br/>FastAPI/Flask"]
+        SERVING["Model Serving<br/>Chargement modèle<br/>Gestion cache"]
+    end
+
+    subgraph TRAINING["COUCHE D'ENTRAÎNEMENT"]
+        LOADER["Data Loader"]
+        MODEL["MobileNetV2<br/>Base Model"]
+        MANAGER["Training Manager"]
+        ADVGEN["Adversarial Generator<br/>FGSM, PGD"]
+        METRICS["Metrics Tracker"]
+    end
+
+    subgraph DATA["COUCHE DE DONNÉES"]
+        KAGGLE["Dataset Kaggle<br/>Images d'armes"]
+        COCO["Dataset COCO<br/>Images sûres"]
+        STORAGE["Stockage<br/>Modèles & Résultats"]
+    end
+
+    subgraph INFRA["INFRASTRUCTURE - Docker"]
+        C1["Container: Training"]
+        C2["Container: API Service"]
+        C3["Container: Web UI"]
+    end
+
+    WEB -.HTTP/REST.-> API
+    API --> SERVING
+    SERVING -.Charge modèle.-> STORAGE
+
+    KAGGLE --> LOADER
+    COCO --> LOADER
+    LOADER --> MODEL
+    MODEL --> MANAGER
+    ADVGEN --> MANAGER
+    MANAGER --> METRICS
+    MANAGER --> STORAGE
+    METRICS --> STORAGE
+
+    C1 -.Exécute.-> TRAINING
+    C2 -.Exécute.-> SERVICES
+    C3 -.Exécute.-> PRESENTATION
+
+    classDef presentation fill:#e3f2fd,stroke:#2196F3,stroke-width:2px
+    classDef services fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
+    classDef training fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+    classDef data fill:#fce4ec,stroke:#E91E63,stroke-width:2px
+    classDef infra fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px
+
+    class WEB presentation
+    class API,SERVING services
+    class LOADER,MODEL,MANAGER,ADVGEN,METRICS training
+    class KAGGLE,COCO,STORAGE data
+    class C1,C2,C3 infra
+        </div>
+    </div>
+
+    <div class="export-section">
+        <button onclick="captureAsSVG()">📥 Télécharger en SVG</button>
+        <button onclick="captureAsPNG()">📥 Télécharger en PNG (haute qualité)</button>
+        <button onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+
+    <div class="platform-info">
+        <h3>🎨 Plateformes pour modifier ce diagramme</h3>
+
+        <h4>Option 1 : Draw.io (Recommandé) ✅</h4>
+        <ul>
+            <li><strong>En ligne :</strong> <a href="https://app.diagrams.net/" target="_blank">app.diagrams.net</a></li>
+            <li><strong>Desktop :</strong> Télécharger depuis <a href="https://www.drawio.com/" target="_blank">drawio.com</a></li>
+            <li><strong>Avantages :</strong> Gratuit, interface intuitive, export PNG/SVG/PDF</li>
+            <li><strong>Utilisation :</strong> Importer le fichier <code>architecture_globale.drawio</code> (à créer)</li>
+        </ul>
+
+        <h4>Option 2 : Excalidraw (Simple et rapide) ✅</h4>
+        <ul>
+            <li><strong>En ligne :</strong> <a href="https://excalidraw.com/" target="_blank">excalidraw.com</a></li>
+            <li><strong>Avantages :</strong> Style hand-drawn, très simple, export PNG/SVG</li>
+        </ul>
+
+        <h4>Option 3 : Lucidchart (Professionnel)</h4>
+        <ul>
+            <li><strong>En ligne :</strong> <a href="https://www.lucidchart.com/" target="_blank">lucidchart.com</a></li>
+            <li><strong>Avantages :</strong> Templates professionnels, collaboration</li>
+            <li><strong>Inconvénient :</strong> Version gratuite limitée</li>
+        </ul>
+
+        <h4>Option 4 : Modifier le code Mermaid directement</h4>
+        <ul>
+            <li><strong>Éditeur en ligne :</strong> <a href="https://mermaid.live/" target="_blank">mermaid.live</a></li>
+            <li><strong>Avantages :</strong> Modification rapide du code, aperçu instantané</li>
+            <li><strong>Code à modifier :</strong> Dans cette page HTML, section <code>&lt;div class="mermaid"&gt;</code></li>
+        </ul>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions pour inclure dans le mémoire LaTeX</h3>
+        <ol>
+            <li><strong>Exporter le diagramme :</strong>
+                <ul>
+                    <li>Cliquez sur "Télécharger en PNG (haute qualité)"</li>
+                    <li>Le fichier sera sauvegardé automatiquement</li>
+                    <li>Renommez-le en <code>architecture_globale.png</code></li>
+                    <li>Placez-le dans <code>figures/</code></li>
+                </ul>
+            </li>
+            <li><strong>Dans votre fichier LaTeX :</strong>
+                <ul>
+                    <li>Décommentez la ligne dans <code>Chapitre_3.1.tex</code></li>
+                    <li><code>\includegraphics[width=\textwidth]{figures/architecture_globale.png}</code></li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>🎨 Légende des couleurs</h3>
+        <ul>
+            <li><span style="background:#e3f2fd; padding:2px 8px; border: 1px solid #2196F3;">Bleu</span> - Couche de présentation</li>
+            <li><span style="background:#e8f5e9; padding:2px 8px; border: 1px solid #4CAF50;">Vert</span> - Couche de services</li>
+            <li><span style="background:#fff3e0; padding:2px 8px; border: 1px solid #FF9800;">Orange</span> - Couche d'entraînement</li>
+            <li><span style="background:#fce4ec; padding:2px 8px; border: 1px solid #E91E63;">Rose</span> - Couche de données</li>
+            <li><span style="background:#f3e5f5; padding:2px 8px; border: 1px solid #9C27B0;">Violet</span> - Infrastructure Docker</li>
+        </ul>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        async function captureAsSVG() {
+            try {
+                const svgElement = document.querySelector('.mermaid svg');
+                if (!svgElement) {
+                    alert('Le diagramme n\'est pas encore chargé. Veuillez patienter quelques secondes.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'architecture_globale.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                console.log('SVG téléchargé avec succès');
+            } catch (error) {
+                console.error('Erreur lors du téléchargement SVG:', error);
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        async function captureAsPNG() {
+            try {
+                const svgElement = document.querySelector('.mermaid svg');
+                if (!svgElement) {
+                    alert('Le diagramme n\'est pas encore chargé. Veuillez patienter quelques secondes.');
+                    return;
+                }
+
+                // Créer un canvas pour la conversion
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const svgString = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+
+                const img = new Image();
+
+                img.onload = function() {
+                    // Haute résolution (2x)
+                    canvas.width = img.width * 2;
+                    canvas.height = img.height * 2;
+
+                    // Fond blanc
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Dessiner l'image
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Convertir en PNG et télécharger
+                    canvas.toBlob(function(blob) {
+                        const downloadUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = 'architecture_globale.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(downloadUrl);
+                        console.log('PNG téléchargé avec succès');
+                    }, 'image/png');
+
+                    URL.revokeObjectURL(url);
+                };
+
+                img.onerror = function() {
+                    alert('Erreur lors du chargement de l\'image');
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+
+            } catch (error) {
+                console.error('Erreur lors du téléchargement PNG:', error);
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        // Vérifier que le diagramme est bien chargé
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    console.warn('Le diagramme Mermaid n\'a pas été généré');
+                } else {
+                    console.log('Diagramme Mermaid chargé avec succès');
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

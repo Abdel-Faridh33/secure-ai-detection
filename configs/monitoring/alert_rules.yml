@@ -1,0 +1,62 @@
+groups:
+  - name: ai_detection_alerts
+    rules:
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 Taux d'erreur élevé détecté"
+          description: "Le service {{ $labels.job }} a un taux d'erreur de {{ $value | humanizePercentage }} depuis plus de 2 minutes."
+
+      # High Response Time Alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⏱️ Temps de réponse élevé"
+          description: "Le P95 du temps de réponse pour {{ $labels.job }} est de {{ $value }}s."
+
+      # Service Down Alert
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🔴 Service indisponible"
+          description: "Le service {{ $labels.job }} sur {{ $labels.instance }} est indisponible."
+
+      # Low Model Accuracy Alert
+      - alert: LowModelAccuracy
+        expr: ai_model_accuracy < 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "🎯 Précision du modèle faible"
+          description: "La précision du modèle {{ $labels.model_type }} est de {{ $value | humanizePercentage }}."
+
+      # High Prediction Load Alert
+      - alert: HighPredictionLoad
+        expr: rate(ai_model_predictions_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "📈 Charge de prédictions élevée"
+          description: "Le modèle {{ $labels.model_type }} traite {{ $value }} prédictions/sec."
+
+      # Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / (1024*1024*1024) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "💾 Utilisation mémoire élevée"
+          description: "Le service {{ $labels.job }} utilise {{ $value | humanize }}Go de mémoire."

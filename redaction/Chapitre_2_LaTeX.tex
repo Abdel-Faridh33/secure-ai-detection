@@ -1,0 +1,349 @@
+\chapter{Méthodologie et Architecture}
+
+\section{Démarche méthodologique}
+
+\subsection{Collecte des Données}
+
+Pour notre cas expérimental de détection d'objets dangereux, nous avons constitué un dataset spécifique en plusieurs étapes :
+
+\paragraph{Dataset initial}
+Nous avons collecté initialement environ 100 images représentant deux classes :
+\begin{itemize}
+    \item \textbf{Classe 0 (Safe)} : Objets non dangereux (téléphones, ordinateurs portables, sacs, etc.)
+    \item \textbf{Classe 1 (Dangerous)} : Objets dangereux (armes blanches, armes à feu, etc.)
+\end{itemize}
+
+Ce dataset de base provient de sources publiques et a été manuellement validé pour garantir la qualité des annotations.
+
+\paragraph{Stratégie d'augmentation}
+Face à la taille limitée du dataset initial, nous avons implémenté une stratégie d'augmentation de données à quatre niveaux, spécifiquement conçue pour améliorer la robustesse du modèle :
+
+\begin{enumerate}
+    \item \textbf{Niveau 1 - Transformations géométriques} : Rotations (jusqu'à 30°), translations horizontales et verticales
+    \item \textbf{Niveau 2 - Transformations photométriques} : Variations de luminosité, contraste, saturation
+    \item \textbf{Niveau 3 - Transformations spatiales} : Flips horizontaux, zooms, recadrages aléatoires
+    \item \textbf{Niveau 4 - Transformations résistantes aux attaques} : Ajout de bruit gaussien contrôlé, flou léger
+\end{enumerate}
+
+Cette stratégie d'augmentation nous a permis d'obtenir un dataset final de \textbf{1536 images}, réparties comme suit :
+\begin{itemize}
+    \item 1024 images pour l'entraînement (train set)
+    \item 256 images pour la validation (validation set)
+    \item 256 images pour les tests (test set)
+\end{itemize}
+
+Cette répartition suit la convention 66,7\% / 16,7\% / 16,7\%, garantissant suffisamment de données pour l'entraînement tout en conservant des ensembles de validation et de test représentatifs.
+
+\subsection{Choix du Modèle et Architecture}
+
+Pour notre cas de détection binaire d'objets dangereux, nous avons opté pour l'architecture \textbf{ResNet50} (Residual Network à 50 couches) avec la technique du transfer learning.
+
+\paragraph{Justification du choix de ResNet50}
+\begin{itemize}
+    \item Architecture éprouvée pré-entraînée sur ImageNet, permettant de bénéficier de représentations visuelles déjà apprises
+    \item Capacité à extraire des features pertinentes même avec un dataset de taille modeste (1536 images)
+    \item Performance équilibrée entre précision et temps d'inférence, adaptée au déploiement en production
+    \item Disponibilité dans PyTorch avec des poids pré-entraînés
+\end{itemize}
+
+\paragraph{Adaptation pour la classification binaire}
+Nous avons modifié la dernière couche fully connected de ResNet50 pour produire 2 sorties (Safe vs Dangerous) au lieu des 1000 classes d'ImageNet. Cette adaptation permet de conserver les features extraites par les couches convolutives tout en spécialisant la classification pour notre tâche spécifique.
+
+\paragraph{Architecture de sécurisation en 5 zones}
+Nous proposons une architecture de sécurisation globale structurée en cinq zones de sécurité couvrant l'intégralité du cycle de vie du modèle :
+
+\begin{enumerate}
+    \item \textbf{Zone 1 - Data Security} : Sécurisation de la collecte, du stockage et de la validation des données
+    \item \textbf{Zone 2 - Training Security} : Protection du processus d'entraînement contre les attaques adversariales
+    \item \textbf{Zone 3 - Validation \& Testing} : Tests rigoureux de robustesse et de sécurité
+    \item \textbf{Zone 4 - Production Security} : Déploiement sécurisé et monitoring en temps réel
+    \item \textbf{Zone 5 - Governance \& Compliance} : Surveillance continue, audit et conformité réglementaire
+\end{enumerate}
+
+Cette architecture en cinq zones permet d'établir des barrières de sécurité successives, garantissant qu'une vulnérabilité dans une zone n'entraîne pas la compromission de l'ensemble du système.
+
+\subsection{Configuration Expérimentale}
+
+Pour valider l'efficacité de notre architecture de sécurisation, nous avons mis en place une expérimentation comparative impliquant deux configurations distinctes :
+
+\paragraph{Configuration Baseline}
+Le modèle baseline consiste en un ResNet50 entraîné de manière classique :
+\begin{itemize}
+    \item Entraînement standard avec cross-entropy loss
+    \item Optimiseur Adam avec learning rate de 0.001
+    \item Aucune défense spécifique contre les attaques adversariales
+    \item Entraînement sur 20 epochs
+\end{itemize}
+
+Cette configuration sert de référence pour mesurer les performances d'un modèle sans mécanismes de sécurisation.
+
+\paragraph{Configuration Sécurisée}
+Le modèle sécurisé intègre les mécanismes de défense de notre architecture 5 zones :
+\begin{itemize}
+    \item \textbf{Zone 1} : Validation statistique du dataset (détection d'outliers, vérification des distributions)
+    \item \textbf{Zone 2} : Adversarial training avec la méthode TRADES (TRadeoff-inspired Adversarial DEfense via Surrogate-loss minimization)
+    \item \textbf{Zone 3} : Tests de robustesse automatisés avec FGSM, PGD et C\&W
+    \item \textbf{Zone 4} : Déploiement via Docker avec API FastAPI sécurisée
+    \item \textbf{Zone 5} : Monitoring avec Prometheus et logging des prédictions
+\end{itemize}
+
+L'adversarial training TRADES a été configuré avec un beta (coefficient de régularisation) de 6.0, permettant d'équilibrer la précision sur données propres et la robustesse adversariale.
+
+\paragraph{Environnement d'expérimentation}
+Les expérimentations ont été réalisées sur Google Colab avec GPU (Tesla T4), permettant un entraînement accéléré. Le code a été développé en Python 3.8 avec PyTorch 1.12 et la bibliothèque Adversarial Robustness Toolbox (ART) d'IBM Research.
+
+\subsection{Protocole d'Évaluation}
+
+Notre protocole d'évaluation compare systématiquement les deux configurations (baseline vs sécurisée) selon plusieurs axes :
+
+\paragraph{Métriques de performance sur données propres}
+Nous mesurons d'abord les performances sur le test set sans attaque pour vérifier que les mécanismes de sécurisation ne dégradent pas excessivement les performances :
+\begin{itemize}
+    \item Accuracy (taux de prédictions correctes)
+    \item Precision (proportion de vrais positifs parmi les prédictions positives)
+    \item Recall (proportion de vrais positifs détectés)
+    \item F1-score (moyenne harmonique de precision et recall)
+\end{itemize}
+
+\paragraph{Tests de robustesse adversariale}
+Nous évaluons ensuite la résistance des deux modèles face à trois types d'attaques adversariales de référence :
+
+\begin{enumerate}
+    \item \textbf{FGSM (Fast Gradient Sign Method)} : Attaque simple en une étape, testée avec différentes valeurs d'epsilon (0.01, 0.05, 0.1, 0.2, 0.3)
+    \item \textbf{PGD (Projected Gradient Descent)} : Attaque itérative plus puissante, avec 10 itérations et mêmes valeurs d'epsilon
+    \item \textbf{C\&W (Carlini \& Wagner)} : Attaque d'optimisation sophistiquée, testée avec différents paramètres de confiance
+\end{enumerate}
+
+Pour chaque attaque et chaque valeur d'epsilon, nous mesurons l'accuracy adversariale (taux de prédictions correctes sur images perturbées).
+
+\paragraph{Métriques complémentaires}
+Nous évaluons également :
+\begin{itemize}
+    \item \textbf{Temps d'entraînement} : Comparaison de la durée d'entraînement entre baseline et modèle sécurisé
+    \item \textbf{Temps d'inférence} : Latence moyenne pour une prédiction en production
+    \item \textbf{Taille des modèles} : Espace disque requis pour le stockage
+\end{itemize}
+
+Les résultats détaillés de ces évaluations seront présentés dans le chapitre 4, permettant d'analyser le trade-off entre robustesse, performance et coût computationnel.
+
+\section{Méthode de sécurisation des modèles IA dans les systèmes de sécurité}
+
+Face aux menaces qui ont été présentées dans le chapitre précédent, nous proposons une architecture de sécurisation globale et modulaire pour les modèles d'IA déployés dans les systèmes de maintien de l'ordre. Cette architecture s'appuie sur les concepts de défense en profondeur de la cybersécurité classique, mais les adapte aux particularités des systèmes d'apprentissage automatique. Notre approche englobe tout le cycle de vie des modèles IA, de la collecte des données à la mise en production en passant par l'entraînement, la validation et le monitoring continu.
+
+L'architecture proposée repose sur un principe fondamental : \textbf{aucune zone de sécurité unique ne peut garantir à elle seule la protection complète d'un système d'IA}. Par conséquent, nous adoptons une stratégie de défense en profondeur avec cinq couches de protection successives et complémentaires.
+
+\subsection{Architecture en 5 zones de sécurité}
+
+Notre architecture segmente le cycle de vie des modèles d'IA en cinq zones de sécurité distinctes, chacune ayant des objectifs spécifiques et des mécanismes de protection adaptés.
+
+\subsubsection{Zone 1 : Data Security - Sécurisation des données}
+
+La première zone constitue le fondement de toute l'architecture de sécurité. Elle vise à garantir l'intégrité, la qualité et la provenance des données utilisées pour l'entraînement et l'inférence des modèles.
+
+\paragraph{Objectifs de sécurité}
+\begin{itemize}
+    \item Prévenir les attaques de data poisoning (empoisonnement des données)
+    \item Détecter les anomalies statistiques dans les datasets
+    \item Garantir la traçabilité et la provenance des données
+    \item Assurer la conformité avec les réglementations sur la protection des données personnelles
+\end{itemize}
+
+\paragraph{Mécanismes de protection}
+Les mécanismes implémentés dans cette zone incluent :
+
+\begin{enumerate}
+    \item \textbf{Validation statistique des données} : Analyse des distributions statistiques pour détecter des déviations par rapport aux données attendues
+    \item \textbf{Détection d'anomalies} : Identification d'exemples suspects dans le dataset d'entraînement
+    \item \textbf{Versioning et traçabilité} : Utilisation d'outils comme DVC (Data Version Control) pour tracer l'évolution des datasets
+    \item \textbf{Contrôles d'accès stricts} : Limitation des personnes autorisées à modifier les données d'entraînement
+\end{enumerate}
+
+\subsubsection{Zone 2 : Training Security - Sécurisation de l'entraînement}
+
+Cette zone protège le processus d'entraînement du modèle contre les attaques visant à compromettre les paramètres appris ou à introduire des backdoors.
+
+\paragraph{Objectifs de sécurité}
+\begin{itemize}
+    \item Augmenter la robustesse du modèle face aux exemples adversariaux
+    \item Prévenir l'insertion de backdoors pendant l'entraînement
+    \item Assurer la reproductibilité des entraînements
+    \item Protéger la confidentialité des données d'entraînement
+\end{itemize}
+
+\paragraph{Mécanismes de protection}
+\begin{enumerate}
+    \item \textbf{Adversarial Training} : Entraînement du modèle avec des exemples adversariaux générés dynamiquement
+    \item \textbf{TRADES (TRadeoff-inspired Adversarial DEfense via Surrogate-loss minimization)} : Méthode avancée évitant le gradient masking
+    \item \textbf{Differential Privacy} : Ajout de bruit contrôlé pendant l'entraînement pour protéger la confidentialité
+    \item \textbf{Monitoring des métriques d'entraînement} : Détection d'anomalies dans les courbes de loss et d'accuracy
+\end{enumerate}
+
+\subsubsection{Zone 3 : Validation \& Testing - Tests de sécurité}
+
+Cette zone assure que le modèle entraîné satisfait aux critères de performance et de robustesse avant son déploiement.
+
+\paragraph{Objectifs de sécurité}
+\begin{itemize}
+    \item Vérifier la robustesse adversariale du modèle
+    \item Détecter les biais algorithmiques potentiellement dangereux
+    \item Tester le comportement du modèle dans des conditions dégradées
+    \item Valider la conformité aux exigences de sécurité
+\end{itemize}
+
+\paragraph{Mécanismes de protection}
+\begin{enumerate}
+    \item \textbf{Tests adversariaux automatisés} : Batterie de tests avec FGSM, PGD, C\&W
+    \item \textbf{Analyse de fairness} : Détection de biais sur des groupes démographiques
+    \item \textbf{Tests de robustesse} : Évaluation sur données bruitées, floues, avec variations d'éclairage
+    \item \textbf{Pipeline CI/CD sécurisé} : Tests automatiques avant chaque déploiement
+\end{enumerate}
+
+\subsubsection{Zone 4 : Production Security - Déploiement sécurisé}
+
+Cette zone protège le modèle en production contre les attaques en temps réel et assure un monitoring continu.
+
+\paragraph{Objectifs de sécurité}
+\begin{itemize}
+    \item Détecter les tentatives d'attaques adversariales en temps réel
+    \item Assurer la disponibilité et l'intégrité du service
+    \item Protéger le modèle contre le vol ou la reconstruction
+    \item Maintenir des performances acceptables sous charge
+\end{itemize}
+
+\paragraph{Mécanismes de protection}
+\begin{enumerate}
+    \item \textbf{Détection d'anomalies d'entrée} : Filtrage des inputs suspects avant inférence
+    \item \textbf{Rate limiting} : Limitation du nombre de requêtes pour prévenir les attaques par force brute
+    \item \textbf{Conteneurisation sécurisée} : Déploiement via Docker avec isolation réseau
+    \item \textbf{API sécurisée} : Authentification, chiffrement des communications, journalisation
+\end{enumerate}
+
+\subsubsection{Zone 5 : Governance \& Compliance - Gouvernance et conformité}
+
+La dernière zone assure une supervision globale du système et garantit la conformité avec les réglementations.
+
+\paragraph{Objectifs de sécurité}
+\begin{itemize}
+    \item Maintenir une visibilité complète sur le système
+    \item Assurer la conformité réglementaire (RGPD, directives IA)
+    \item Permettre l'audit et la traçabilité des décisions du modèle
+    \item Gérer les incidents de sécurité
+\end{itemize}
+
+\paragraph{Mécanismes de protection}
+\begin{enumerate}
+    \item \textbf{Dashboards de monitoring} : Visualisation en temps réel des métriques de performance et de sécurité
+    \item \textbf{Logging centralisé} : Traçabilité complète des prédictions et des accès
+    \item \textbf{Plan de réponse aux incidents} : Procédures documentées en cas de détection d'attaque
+    \item \textbf{Revues de sécurité périodiques} : Audits réguliers de l'ensemble du système
+\end{enumerate}
+
+\section{Outils et Technologies}
+
+L'implémentation de notre architecture de sécurisation nécessite un ensemble d'outils et de technologies soigneusement sélectionnés pour leur maturité, leur performance et leur compatibilité avec les contraintes opérationnelles.
+
+\subsection{Environnement de développement}
+
+\paragraph{Python 3.8+}
+Langage principal pour l'implémentation des modèles et des pipelines de sécurité, choisi pour son écosystème riche en bibliothèques d'apprentissage automatique et de sécurité.
+
+\paragraph{PyTorch 1.12+}
+Framework de deep learning privilégié pour sa flexibilité, permettant une implémentation facile des techniques d'adversarial training et un contrôle fin du processus d'entraînement.
+
+\paragraph{Google Colab / Jupyter Notebook}
+Environnement de développement interactif facilitant l'expérimentation et la documentation du code.
+
+\subsection{Bibliothèques de sécurité et de robustesse}
+
+\paragraph{Adversarial Robustness Toolbox (ART)}
+Bibliothèque développée par IBM Research fournissant des implémentations de référence pour :
+\begin{itemize}
+    \item Génération d'attaques adversariales (FGSM, PGD, C\&W, DeepFool)
+    \item Méthodes de défense (adversarial training, feature squeezing, defensive distillation)
+    \item Métriques de robustesse
+\end{itemize}
+
+\paragraph{CleverHans}
+Bibliothèque complémentaire pour les attaques adversariales, particulièrement utilisée pour les méthodes FGSM et PGD.
+
+\paragraph{Foolbox}
+Framework Python pour évaluer la robustesse des modèles face à diverses attaques adversariales, avec support natif de PyTorch.
+
+\subsection{Outils de gestion des données}
+
+\paragraph{DVC (Data Version Control)}
+Système de versioning pour les datasets et les modèles, permettant de :
+\begin{itemize}
+    \item Tracer l'évolution des données d'entraînement
+    \item Assurer la reproductibilité des expériences
+    \item Gérer efficacement les datasets volumineux
+\end{itemize}
+
+\paragraph{Great Expectations}
+Framework de validation de données permettant de définir des attentes sur les propriétés statistiques des datasets et de détecter les anomalies.
+
+\subsection{Infrastructure de déploiement}
+
+\paragraph{Docker}
+Conteneurisation des modèles pour un déploiement isolé et reproductible.
+
+\paragraph{FastAPI}
+Framework web moderne pour créer des APIs REST performantes et sécurisées pour servir les prédictions du modèle.
+
+\paragraph{Nginx}
+Reverse proxy pour la gestion du load balancing et la limitation du taux de requêtes (rate limiting).
+
+\subsection{Monitoring et observabilité}
+
+\paragraph{Prometheus + Grafana}
+Stack de monitoring pour collecter et visualiser les métriques de performance et de sécurité en temps réel.
+
+\paragraph{ELK Stack (Elasticsearch, Logstash, Kibana)}
+Solution de logging centralisé pour la traçabilité complète des prédictions et des événements de sécurité.
+
+\subsection{Justification des choix technologiques}
+
+Le choix de cette stack technologique repose sur plusieurs critères :
+
+\begin{enumerate}
+    \item \textbf{Maturité et fiabilité} : Tous les outils sélectionnés sont largement utilisés dans l'industrie et bénéficient d'une communauté active.
+
+    \item \textbf{Compatibilité et interopérabilité} : L'ensemble des composants s'intègre de manière fluide, minimisant les frictions techniques.
+
+    \item \textbf{Performance} : Les outils choisis permettent d'atteindre les objectifs de latence (<200ms) tout en maintenant un niveau de sécurité élevé.
+
+    \item \textbf{Coût et accessibilité} : Privilégier des solutions open-source réduit les coûts et facilite l'adoption dans des contextes aux ressources limitées.
+
+    \item \textbf{Scalabilité} : L'architecture peut évoluer pour gérer une charge croissante sans refonte majeure.
+\end{enumerate}
+
+\section*{Synthèse}
+
+Ce chapitre a présenté la méthodologie et l'architecture de sécurisation que nous proposons pour les systèmes d'IA déployés dans le domaine du maintien de l'ordre. Les points clés sont :
+
+\paragraph{Démarche méthodologique}
+\begin{itemize}
+    \item Constitution d'un dataset de 1536 images (100 images initiales augmentées via 4 niveaux de transformations)
+    \item Utilisation de ResNet50 avec transfer learning pour la classification binaire (Safe vs Dangerous)
+    \item Configuration expérimentale comparative : modèle baseline vs modèle sécurisé avec TRADES
+    \item Protocole d'évaluation incluant tests adversariaux (FGSM, PGD, C\&W) avec différentes valeurs d'epsilon
+\end{itemize}
+
+\paragraph{Architecture de sécurisation en 5 zones}
+\begin{itemize}
+    \item \textbf{Zone 1 - Data Security} : Validation et traçabilité des données
+    \item \textbf{Zone 2 - Training Security} : Adversarial training avec TRADES
+    \item \textbf{Zone 3 - Validation \& Testing} : Tests adversariaux automatisés
+    \item \textbf{Zone 4 - Production Security} : Déploiement sécurisé avec monitoring
+    \item \textbf{Zone 5 - Governance} : Conformité et gestion des incidents
+\end{itemize}
+
+\paragraph{Stack technologique}
+\begin{itemize}
+    \item PyTorch pour l'entraînement, ART et Foolbox pour la robustesse adversariale
+    \item DVC pour le versioning des données, Docker pour le déploiement
+    \item FastAPI pour l'API, Prometheus/Grafana pour le monitoring
+    \item Choix guidés par maturité, interopérabilité, performance et accessibilité
+\end{itemize}
+
+Le chapitre suivant présentera l'implémentation concrète de cette architecture sur notre cas d'usage expérimental, avec une analyse détaillée des résultats obtenus en termes de performance, de robustesse et de coût computationnel.

@@ -1,0 +1,30 @@
+# Dockerfile pour l'environnement de développement complet
+FROM python:3.10-slim
+
+# Installation des outils système nécessaires
+RUN apt-get update && apt-get install -y \
+    git \
+    vim \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Installation des dépendances Python
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --upgrade pip && \
+    pip install --default-timeout=1000 --retries 5 \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt && \
+    pip install --default-timeout=1000 --retries 5 -r requirements-dev.txt
+
+# Configuration pour le développement
+ENV PYTHONPATH=/workspace
+ENV JUPYTER_ENABLE_LAB=yes
+
+# Port pour Jupyter (8888), API (8000), et debugging (5678)
+EXPOSE 8888 8000 5678
+
+# Commande par défaut: bash interactif
+CMD ["/bin/bash"]

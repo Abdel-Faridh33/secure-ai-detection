@@ -1,0 +1,66 @@
+# Configuration AlertManager
+# Systeme de gestion et routage des alertes
+
+global:
+  resolve_timeout: 5m
+
+# Route des alertes
+route:
+  # Regroupement des alertes
+  group_by: ['alertname', 'severity', 'component']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  # Receiver par defaut
+  receiver: 'default-receiver'
+
+  # Routes specifiques par severite
+  routes:
+    # Alertes critiques - notification immediate
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 1h
+
+    # Alertes de warning - groupees
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 4h
+
+# Inhibition rules - eviter les alertes redondantes
+inhibit_rules:
+  # Si API est DOWN, ne pas alerter sur la latence
+  - source_match:
+      alertname: 'APIDown'
+    target_match:
+      alertname: 'HighLatency'
+    equal: ['component']
+
+# Receivers - Destinations des alertes
+receivers:
+  # Receiver par defaut
+  - name: 'default-receiver'
+    # Pour l'instant, logs uniquement
+    # En production, configurer webhook, email, Slack, etc.
+
+  # Alertes critiques
+  - name: 'critical-alerts'
+    # Configuration webhook active
+    webhook_configs:
+      - url: 'http://host.docker.internal:5001/alerts/critical'
+        send_resolved: true
+
+  # Alertes de warning
+  - name: 'warning-alerts'
+    # Configuration webhook active
+    webhook_configs:
+      - url: 'http://host.docker.internal:5001/alerts/warning'
+        send_resolved: true
+
+# Templates personnalises (optionnel)
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

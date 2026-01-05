@@ -1,0 +1,12 @@
+name: Scheduled Security Audit
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly audit
+    
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run audit in Docker
+        run: docker-compose -f docker/docker-compose.dev.yml run --rm dev python -m safety check

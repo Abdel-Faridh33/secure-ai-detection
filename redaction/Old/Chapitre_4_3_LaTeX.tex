@@ -1,0 +1,109 @@
+\section{Implémentation de la méthode de sécurisation}
+
+Fort des conclusions du chapitre précédent qui ont révélé la vulnérabilité critique du modèle baseline aux attaques PGD, ce chapitre présente l'implémentation des mécanismes de défense adversariale. L'objectif est de transformer un modèle vulnérable (53.3\% d'Attack Success Rate) en un système robuste capable de résister aux perturbations adversariales tout en maintenant d'excellentes performances sur données propres.
+
+\subsection{Architecture globale du système sécurisé}
+
+L'approche de sécurisation repose sur une architecture intégrée centralisant trois axes de défense complémentaires. Le premier axe adresse la problématique de volume de données : partant d'un dataset initial de seulement 100 images, nous avons mis en œuvre un système d'augmentation sophistiqué permettant d'atteindre plus de 1000 échantillons. Le second axe concerne la diversification qualitative : un schéma d'augmentation à quatre niveaux de complexité génère des variations contrôlées, des transformations géométriques simples aux perturbations spécifiquement conçues pour renforcer la résistance adversariale. Le troisième axe introduit l'entraînement adversarial proprement dit, où le modèle apprend simultanément sur données propres et sur exemples adversariaux générés dynamiquement par l'attaque PGD.
+
+Cette architecture s'articule autour d'une classe principale, \texttt{RobustAdversarialTrainer}, qui orchestre l'ensemble du processus. Lors de son initialisation, elle charge le dataset augmenté, construit le modèle ResNet50 avec les couches de classification adaptées, et configure l'attaque PGD qui servira à la fois à générer des exemples adversariaux pendant l'entraînement et à évaluer la robustesse du modèle. L'organisation modulaire permet une traçabilité complète : chaque composant enregistre ses paramètres, et les checkpoints sauvegardés incluent non seulement l'état du modèle mais aussi l'ensemble de la configuration méthodologique.
+
+\subsection{Augmentation et diversification du dataset}
+
+\subsubsection{Stratégie d'augmentation à quatre niveaux}
+
+Le système d'augmentation adopte une approche graduée en quatre niveaux de complexité croissante, chacun ciblant des aspects spécifiques de la robustesse. Les transformations légères (25\% des échantillons générés) comprennent les retournements horizontaux, les rotations modérées entre -15° et +15°, ainsi que des variations de couleur contrôlées. Ces augmentations classiques améliorent la généralisation sans introduire de distorsions majeures.
+
+Les transformations moyennes (35\% des échantillons) explorent des déformations géométriques plus complexes : translations jusqu'à 10\% de la dimension de l'image, changements de perspective avec un facteur de distorsion de 0.2, flou gaussien avec des noyaux de taille 3 et un écart-type variable, et ajustements de netteté. Cette catégorie simule des conditions de capture variées, préparant le modèle à reconnaître les objets sous différents angles et avec différentes qualités d'image.
+
+Les transformations fortes (25\% des échantillons) augmentent l'intensité des perturbations : rotations étendues jusqu'à ±30°, changements d'échelle entre 0.8× et 1.2×, et ajustements automatiques de contraste. Ces variations extrêmes forcent le modèle à apprendre des représentations véritablement invariantes aux transformations géométriques et photométriques.
+
+La quatrième catégorie, représentant 15\% des échantillons, introduit des transformations spécifiquement conçues pour la résistance adversariale. Le flou gaussien fort (noyau de taille 5, écart-type entre 1.0 et 3.0) lisse les perturbations localisées que pourraient introduire les attaques. La postérisation réduit le nombre de niveaux de couleur à 4 bits, atténuant les modifications pixel-niveau typiques des exemples adversariaux. La solarisation et l'égalisation d'histogramme redistribuent les intensités de manière non linéaire, complexifiant l'optimisation des perturbations pour un attaquant potentiel.
+
+\subsubsection{Processus de génération et résultats}
+
+Le processus de génération transforme systématiquement chaque image originale en multiples variantes selon une stratégie rotative. Pour chaque image de base, l'algorithme calcule le nombre d'augmentations nécessaires pour atteindre l'objectif de 500 échantillons par classe, puis applique séquentiellement les quatre niveaux de transformation. Cette approche garantit une distribution équilibrée : aucun niveau n'est sur-représenté ou sous-représenté dans le dataset final.
+
+Les résultats de cette stratégie sont substantiels. Le split d'entraînement passe de 70 à 1024 images, soit un facteur multiplicatif de 14.6. Le split de validation, initialement composé de 14 images, atteint 256 échantillons (facteur 18.3). Au total, le dataset augmente de 84 à 1280 images, une multiplication par 15.2 qui transforme radicalement la capacité d'apprentissage du modèle sans requérir de collecte manuelle supplémentaire.
+
+\subsection{Entraînement adversarial avec PGD}
+
+\subsubsection{Principe de l'entraînement adversarial}
+
+L'entraînement adversarial repose sur un principe simple mais puissant : exposer le modèle à des exemples adversariaux pendant l'apprentissage, afin qu'il développe des représentations intrinsèquement robustes. Contrairement à l'entraînement standard qui optimise uniquement sur données propres, cette approche alterne entre données naturelles et perturbées, forçant le réseau à apprendre des caractéristiques qui résistent aux perturbations adversariales.
+
+L'attaque PGD utilisée pendant l'entraînement est configurée avec un budget de perturbation epsilon de 0.031 (environ 8/255 en norme L-infini), un pas alpha de 0.007 (epsilon/4 selon les recommandations de Madry et al. \cite{madry2018towards}), et 7 itérations. Ce paramétrage représente un compromis entre efficacité de l'attaque et temps de calcul : 7 itérations suffisent généralement pour que PGD converge vers des exemples adversariaux de qualité, tout en maintenant un temps d'entraînement raisonnable par rapport aux configurations à 10 ou 20 itérations.
+
+\subsubsection{Mécanisme d'entraînement par étape}
+
+Chaque étape d'entraînement adversarial suit une procédure en cinq phases. D'abord, le modèle effectue une passe forward sur les données propres et calcule la loss de classification standard. Ensuite, le modèle bascule temporairement en mode évaluation (pour désactiver le dropout et fixer les statistiques de batch normalization), et l'attaque PGD génère des versions adversariales des images du batch. Le modèle repasse en mode entraînement, effectue une seconde passe forward sur les exemples adversariaux, et calcule la loss adversariale. La loss totale combine ces deux composantes par simple moyenne, équilibrant ainsi l'objectif de performance sur données propres et de robustesse aux perturbations.
+
+Cette approche diffère de la méthode TRADES originale qui utilise une pondération paramétrique entre les deux objectifs. Ici, nous adoptons une stratégie symétrique où clean et adversarial ont un poids égal. Formellement, la loss totale s'écrit :
+
+\begin{equation}
+\mathcal{L}_{\text{total}} = \frac{1}{2}\left(\text{CrossEntropy}(f_\theta(x), y) + \text{CrossEntropy}(f_\theta(\text{PGD}(x)), y)\right)
+\label{eq:adversarial_loss}
+\end{equation}
+
+La rétropropagation du gradient utilise cette loss combinée, forçant le modèle à optimiser simultanément pour les deux distributions. Un mécanisme de gradient clipping avec une norme maximale de 1.0 stabilise l'entraînement en évitant les explosions de gradients, phénomène fréquent lors de l'adversarial training où les perturbations peuvent créer des paysages de loss particulièrement chaotiques.
+
+\subsubsection{Génération d'exemples adversariaux PGD}
+
+L'algorithme PGD suit la méthodologie de Madry et al. \cite{madry2018towards}. Il initialise l'image adversariale en ajoutant à l'image originale un bruit aléatoire uniforme dans l'intervalle [-epsilon, epsilon], puis effectue une série d'itérations de gradient ascent. À chaque itération, l'algorithme calcule le gradient de la loss par rapport à l'image adversariale courante, effectue un pas dans la direction du signe du gradient (scaled par alpha), puis projette le résultat sur deux contraintes : premièrement, la perturbation totale doit rester dans la boule L-infini de rayon epsilon centrée sur l'image originale ; deuxièmement, les valeurs de pixels doivent rester dans l'intervalle valide [0,1].
+
+Cette double projection garantit que les exemples adversariaux générés respectent les contraintes de perturbation imperceptible tout en restant des images valides. L'initialisation aléatoire, plutôt que de partir directement de l'image originale, permet à PGD d'explorer différentes régions de l'espace adversarial et d'éviter les minima locaux.
+
+\subsection{Mécanismes de régulation et d'optimisation}
+
+\subsubsection{Early stopping intelligent}
+
+Un système d'early stopping surveille la progression de la robustesse sur l'ensemble de validation. Le critère de plateau détecte les situations où l'accuracy adversariale sur validation n'améliore pas pendant trois epochs consécutives (avec une tolérance de 0.5\%). Parallèlement, une vérification de dégradation alerte si la clean accuracy chute de plus de 5\% par rapport au meilleur résultat observé, signalant un surapprentissage excessif sur les exemples adversariaux au détriment des données propres.
+
+Cette double surveillance évite deux écueils : poursuivre inutilement l'entraînement lorsque le modèle a atteint un plateau de robustness, et compromettre les performances nominales dans une quête excessive de robustesse adversariale.
+
+\subsubsection{Configuration d'entraînement et temps de calcul}
+
+L'entraînement s'étend sur 25 epochs maximum avec un batch size de 8, limité par les ressources CPU disponibles. L'optimiseur Adam utilise un learning rate de 0.001 avec une régularisation par weight decay de $5 \times 10^{-4}$. Un scheduler cosine ajuste progressivement le taux d'apprentissage au fil des epochs, facilitant une convergence fine vers la fin de l'entraînement.
+
+Le coût computationnel de l'adversarial training est substantiel : chaque epoch requiert environ 5 à 6 heures sur CPU, car la génération d'exemples adversariaux PGD à chaque batch multiplie significativement le temps de calcul par rapport à un entraînement standard. Sur 25 epochs, cela représenterait environ 140 heures. En pratique, l'early stopping déclenche généralement l'arrêt autour de l'epoch 16, réduisant le temps effectif à environ 96 heures.
+
+\subsection{Résultats de convergence et modèle final}
+
+\subsubsection{Évolution des métriques d'entraînement}
+
+L'évolution des métriques pendant l'entraînement révèle une progression remarquable de la robustesse. À l'epoch 1, le modèle atteint déjà 87.5\% de clean accuracy mais seulement 62.5\% d'adversarial accuracy, créant un gap de robustesse de 25\%. Ce gap représente la fragilité initiale du modèle face aux perturbations adversariales.
+
+Au fil des epochs, les deux métriques convergent progressivement. À l'epoch 5, la clean accuracy monte à 96.1\% tandis que l'adversarial accuracy atteint 78.1\%, réduisant le gap à 18\%. À l'epoch 10, les performances atteignent respectivement 98.8\% et 93.8\%, avec un gap résiduel de seulement 5\%.
+
+L'epoch 14 marque un événement exceptionnel : le modèle atteint simultanément 100\% de clean accuracy et 100\% d'adversarial accuracy sur l'ensemble d'entraînement, réalisant un \textbf{zero robustness gap}. Cet état représente l'objectif idéal de l'adversarial training où le modèle performe parfaitement sur les deux distributions. Les epochs suivants montrent une légère oscillation, l'epoch 16 (point d'arrêt de l'early stopping) affichant 100\% de clean accuracy et 98.7\% d'adversarial accuracy, soit un gap de 1.3\%.
+
+\subsubsection{Caractéristiques du modèle final}
+
+Le modèle final sauvegardé, \texttt{final\_optimal\_adversarial\_robust\_model.pth}, encapsule 25.6 millions de paramètres dans un fichier de 282 MB. Il a été entraîné pendant 16 epochs avant déclenchement de l'early stopping, avec un pic de performance observé à l'epoch 14. Le temps total d'entraînement de 96 heures sur CPU reflète le coût computationnel élevé mais nécessaire de l'adversarial training.
+
+Les métriques finales confirment le succès de l'approche : 100\% de clean accuracy, 98.7\% d'adversarial accuracy pendant l'entraînement, et 100\% d'accuracy sur l'ensemble de validation. Le robustness gap de 1.3\% est remarquablement faible, témoignant d'une convergence quasi-parfaite entre performance nominale et robustesse adversariale.
+
+\subsection{Validation de l'implémentation}
+
+Un système de vérification automatique valide trois aspects critiques de l'implémentation. D'abord, il confirme l'existence et la taille du dataset augmenté, vérifiant que plus de 1000 images ont effectivement été générées. Ensuite, il teste la capacité du modèle à générer des exemples adversariaux PGD, en s'assurant que la perturbation maximale reste dans les limites du budget epsilon (0.031 plus une tolérance numérique). Enfin, il contrôle que le robustness gap sauvegardé dans le checkpoint final est bien inférieur au seuil de 5\% fixé comme objectif de certification.
+
+Ces vérifications automatisées garantissent que l'implémentation fonctionne conformément aux spécifications et que les résultats observés ne sont pas dus à des erreurs de configuration ou de calcul.
+
+\subsection*{Synthèse}
+
+Ce chapitre a présenté l'implémentation complète d'un système de sécurisation adversariale intégrant trois axes de défense : augmentation du dataset (multiplication par 15.2), diversification à quatre niveaux de transformations, et entraînement adversarial avec génération PGD dynamique. L'architecture modulaire centralise ces mécanismes dans un pipeline cohérent qui a permis d'atteindre des performances exceptionnelles : 100\% de clean accuracy, 98.7\% d'adversarial accuracy, et un robustness gap de seulement 1.3\%.
+
+L'observation du zero robustness gap à l'epoch 14 valide empiriquement l'efficacité de l'approche : le modèle a appris des représentations qui ne sacrifient pas la performance nominale pour obtenir la robustesse, mais optimisent simultanément les deux objectifs. Le chapitre suivant (Section 4.4) présentera l'évaluation exhaustive de ce modèle sur l'ensemble de test, confronté à une batterie d'attaques comprenant FGSM, PGD standard, PGD renforcé, et AutoAttack, permettant une comparaison quantitative rigoureuse avec le baseline vulnérable.
+
+\begin{thebibliography}{9}
+
+\bibitem{zhang2019theoretically}
+Zhang, H., Yu, Y., Jiao, J., Xing, E. P., Ghaoui, L. E., \& Jordan, M. I. (2019). \textit{Theoretically Principled Trade-off between Robustness and Accuracy}. International Conference on Machine Learning (ICML), 7472-7482.
+
+\bibitem{cubuk2019autoaugment}
+Cubuk, E. D., Zoph, B., Mane, D., Vasudevan, V., \& Le, Q. V. (2019). \textit{AutoAugment: Learning Augmentation Strategies From Data}. IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 113-123.
+
+\bibitem{madry2018towards}
+Madry, A., Makelov, A., Schmidt, L., Tsipras, D., \& Vladu, A. (2018). \textit{Towards Deep Learning Models Resistant to Adversarial Attacks}. International Conference on Learning Representations (ICLR).
+
+\end{thebibliography}

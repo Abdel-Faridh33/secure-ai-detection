@@ -1,0 +1,17 @@
+# Configuration automatique des dashboards Grafana
+# Provisioning : Les dashboards sont charges automatiquement au demarrage
+
+apiVersion: 1
+
+providers:
+  - name: 'Secure Detection Dashboards'
+    orgId: 1
+    folder: 'Secure AI Detection'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

@@ -1,0 +1,14 @@
+# Dockerfile pour l'interface web
+FROM nginx:alpine
+
+# Copier la configuration nginx
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# Copier les fichiers web
+COPY web /usr/share/nginx/html
+
+# Exposer le port 80
+EXPOSE 80
+
+# Commande par défaut
+CMD ["nginx", "-g", "daemon off;"]

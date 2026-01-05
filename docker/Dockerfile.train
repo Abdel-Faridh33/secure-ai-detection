@@ -1,0 +1,23 @@
+# Dockerfile pour l'entraînement des modèles (avec support GPU)
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
+WORKDIR /workspace
+
+# Installation des dépendances supplémentaires
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installation des packages Python
+COPY requirements.txt ./
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Variables d'environnement pour CUDA
+ENV CUDA_VISIBLE_DEVICES=0
+ENV PYTHONPATH=/workspace
+
+# Volumes pour data et models
+VOLUME ["/workspace/data", "/workspace/models"]
+
+CMD ["/bin/bash"]

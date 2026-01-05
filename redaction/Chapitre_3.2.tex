@@ -1,0 +1,16 @@
+\section{Choix du modèle de base}
+
+Pour cette expérimentation, nous avons choisi \textbf{MobileNetV2} \cite{sandler2018mobilenetv2} comme architecture de base pour notre système de détection. MobileNetV2 est un réseau de neurones convolutif léger développé par Google, caractérisé par une architecture basée sur les \textit{inverted residual blocks} et les \textit{linear bottlenecks}. Ces innovations architecturales permettent d'obtenir des performances de classification compétitives (72\% top-1 accuracy sur ImageNet) tout en maintenant une empreinte computationnelle très réduite : seulement 3.5 millions de paramètres et 300 millions de FLOPs, contre 25.6 millions de paramètres et 4.1 milliards de FLOPs pour ResNet50. Le modèle accepte des images de taille $224 \times 224 \times 3$ en entrée et utilise des convolutions depthwise séparables pour minimiser le coût computationnel tout en préservant la capacité de représentation.
+
+Le choix de MobileNetV2 repose sur trois critères principaux. Premièrement, son \textbf{efficacité computationnelle} (14 MB de taille, temps d'inférence de 25ms sur CPU) permet un déploiement en production sur des environnements aux ressources limitées, sans nécessiter de GPU dédié. Deuxièmement, sa \textbf{structure modulaire} avec bottlenecks linéaires se prête particulièrement bien à l'adversarial training : la faible complexité du modèle réduit le temps de génération des exemples adverses (FGSM, PGD) à chaque batch, accélérant significativement la convergence durant l'entraînement robuste. Troisièmement, l'architecture offre un excellent support pour le \textbf{transfer learning} : les poids pré-entraînés sur ImageNet fournissent des features génériques de haute qualité que nous adaptons à notre tâche de détection d'armes à feu par fine-tuning des dernières couches, tout en conservant la représentation des patterns visuels fondamentaux (textures, contours, formes) appris sur le dataset source.
+
+
+
+Référence bibliographique à ajouter dans le fichier .bib :
+@inproceedings{sandler2018mobilenetv2,
+  title={MobileNetV2: Inverted Residuals and Linear Bottlenecks},
+  author={Sandler, Mark and Howard, Andrew and Zhu, Menglong and Zhmoginov, Andrey and Chen, Liang-Chieh},
+  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages={4510--4520},
+  year={2018}
+}

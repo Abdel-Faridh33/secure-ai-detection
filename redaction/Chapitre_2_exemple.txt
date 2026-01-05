@@ -1,0 +1,51 @@
+Introduction
+
+L’évolution rapide des réseaux complexes a engendré des défis sans précédent en matière de sécurité.
+Dans ce contexte, ce mémoire s’est engagé à explorer les différentes stratégies d’attaque et de défense
+au sein de ces réseaux complexes. Le chapitre précédent a déjà permis d’analyser les caractéristiques
+des réseaux complexes, d’examiner les stratégies existantes et d’évaluer la résilience de ces réseaux
+face aux attaques. Dans ce chapitre, nous décrirons en détail les étapes de l’implémentation de ces
+stratégies, en mettant en lumière les outils, les paramètres et les méthodes utilisés.
+
+2.1 Démarche méthodologique
+
+La démarche méthodologique de cette étude repose sur une approche rigoureuse visant à explorer
+les stratégies d’attaque et de défense au sein des réseaux complexes. Cette section détaille les étapes
+suivies pour atteindre les objectifs fixés,fournissant ainsi un aperçu du processus de recherche.
+
+2.1.1 Collecte des Données
+
+La collecte des données repose sur l’identification de réseaux complexes pertinents pour notre étude.
+Nous avons sélectionné des réseaux d’infrastructures, tels que des réseaux de transport et de distri-
+bution d’énergie, reflétant diverses structures et interactions. Les données ont été recueillies à partir
+de sources fiables, garantissant une représentation précise de la complexité des réseaux étudiés.
+
+2.1.2 Modélisation des Réseaux Complexes
+
+Nous avons procédé à la modélisation des réseaux complexes en utilisant des techniques adaptées à
+la représentation des interactions non linéaires entre entités. La théorie des jeux a été intégrée pour
+définir les rôles d’attaquants et de défenseurs, ainsi que leurs interactions stratégiques au sein des
+réseaux.
+
+2.1.3 Définition des Stratégies d’Attaque et de Défense
+
+Les stratégies d’attaque et de défense ont été définies en fonction des caractéristiques spécifiques
+des réseau complexe. Les mesures de centralité, telles que la Betweenness, le Degré, la Closeness, et
+l’Eigenvector, ont été considérées comme des paramètres clés dans la définition des stratégies.
+
+2.1.4 Développement de l’Algorithme du Jeu Attaquant-Défenseur
+
+Nous avons élaboré un algorithme basé sur le modèle de jeu attaquant-défenseur. Cet algorithme a
+permis de simuler les interactions stratégiques entre les deux acteurs dans le réseau complexe. Les
+scénarios d’attaque et de défense ont été générés, prenant en compte les caractéristiques spécifiques
+de chaque stratégie.
+
+2.1.5 Simulation et Évaluation des Résultats
+
+Les scénarios d’attaque et de défense ont été soumis à des simulations, évaluant ainsi l’efficacité des
+stratégies dans différentes conditions. L’impact des stratégies de défense sur la résilience structurelle
+des réseaux a été analysé, fournissant des données précieuses pour évaluer la robustesse des systèmes
+face aux attaques.
+Cette démarche méthodologique rigoureuse vise à garantir la validité et la fiabilité des résultats
+obtenus, offrant ainsi une base solide pour l’analyse approfondie des stratégies d’attaque et de dé-
+fense au sein des réseaux complexes.

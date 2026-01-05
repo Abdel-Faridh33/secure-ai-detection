@@ -1,0 +1,175 @@
+# Docker Compose pour la production COMPLETE
+version: '3.8'
+
+services:
+  # API Baseline
+  baseline-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.baseline
+    container_name: baseline-api1
+    ports:
+      - "8001:8000"
+    environment:
+      - MODEL_TYPE=baseline
+      - LOG_LEVEL=INFO
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ../models/baseline:/app/models/baseline:ro
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # API Sécurisée
+  secured-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.secured
+    container_name: secured-api1
+    ports:
+      - "8002:8000"
+    environment:
+      - MODEL_TYPE=secured
+      - ENABLE_DEFENSES=true
+      - LOG_LEVEL=INFO
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ../models/secured:/app/models/secured:ro
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: secure-ai-nginx1
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../configs/nginx/ssl:/etc/nginx/ssl:ro
+      - ../web:/usr/share/nginx/html:ro
+    depends_on:
+      - baseline-api
+      - secured-api
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+
+  # Interface Web (AJOUT)
+  web:
+    image: nginx:alpine
+    container_name: secure-ai-web-prod1
+    ports:
+      - "8080:80"
+    volumes:
+      - ../web:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+
+  # Base de données PostgreSQL (AJOUT)
+  postgres:
+    image: postgres:15-alpine
+    container_name: secure-ai-db-prod1
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-secure_ai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
+      - POSTGRES_DB=${POSTGRES_DB:-ai_metrics}
+    volumes:
+      - postgres-data-prod:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Cache Redis (AJOUT)
+  redis:
+    image: redis:7-alpine
+    container_name: secure-ai-redis-prod1
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data-prod:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Monitoring Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-prod1
+    volumes:
+      - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+
+  # Monitoring Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-prod1
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=https://monitoring.secure-ai.local
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../configs/monitoring/grafana-datasources:/etc/grafana/provisioning/datasources:ro
+      - ../configs/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - secure-ai-network
+    depends_on:
+      - prometheus
+
+networks:
+  secure-ai-network:
+    driver: bridge
+
+volumes:
+  postgres-data-prod:
+  redis-data-prod:
+  prometheus-data:
+  grafana-data:

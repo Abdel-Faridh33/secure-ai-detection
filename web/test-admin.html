@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Direct</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Admin Direct</h1>
+
+        <div class="info">
+            <strong>Cette page permet de:</strong><br>
+            1. Se connecter directement avec le compte admin<br>
+            2. Vérifier le localStorage<br>
+            3. Forcer l'accès à admin.html sans redirections
+        </div>
+
+        <h3>Étape 1: Nettoyer le localStorage</h3>
+        <button onclick="clearStorage()">Vider le localStorage</button>
+        <div id="clearResult"></div>
+
+        <h3>Étape 2: Se connecter</h3>
+        <button onclick="loginAdmin()">Connexion Admin</button>
+        <div id="loginResult"></div>
+
+        <h3>Étape 3: Vérifier le localStorage</h3>
+        <button onclick="checkStorage()">Vérifier localStorage</button>
+        <div id="storageResult"></div>
+
+        <h3>Étape 4: Aller sur admin.html</h3>
+        <button onclick="goToAdmin()">Aller sur admin.html</button>
+        <button onclick="goToIndex()">Aller sur index.html</button>
+
+        <h3>Debug Console</h3>
+        <pre id="debugConsole"></pre>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:9800';
+        let debugLog = [];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.push(`[${timestamp}] ${message}`);
+            document.getElementById('debugConsole').textContent = debugLog.join('\n');
+            console.log(message);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('clearResult').innerHTML = '<div class="success">localStorage vidé!</div>';
+            log('localStorage cleared');
+        }
+
+        async function loginAdmin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = '<p>Connexion en cours...</p>';
+            log('Attempting login...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/security/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: 'admin', password: 'admin123'})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                log(`Login response: ${JSON.stringify(data, null, 2)}`);
+
+                // Sauvegarder dans localStorage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('user_role', data.role);
+                localStorage.setItem('user_name', 'admin');
+                localStorage.setItem('user_permissions', JSON.stringify(data.permissions));
+
+                log(`Token saved: ${data.access_token.substring(0, 20)}...`);
+                log(`Role saved: ${data.role}`);
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <strong>Connexion réussie!</strong><br>
+                        Role: ${data.role}<br>
+                        Token: ${data.access_token.substring(0, 30)}...<br>
+                        Permissions: ${data.permissions.join(', ')}
+                    </div>
+                `;
+            } catch (error) {
+                log(`Login error: ${error}`);
+                resultDiv.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        function checkStorage() {
+            const resultDiv = document.getElementById('storageResult');
+            const token = localStorage.getItem('access_token');
+            const role = localStorage.getItem('user_role');
+            const username = localStorage.getItem('user_name');
+            const permissions = localStorage.getItem('user_permissions');
+
+            log('Checking localStorage...');
+            log(`Token: ${token ? 'Present' : 'MISSING'}`);
+            log(`Role: ${role}`);
+            log(`Username: ${username}`);
+
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <strong>Contenu du localStorage:</strong><br>
+                    Token: ${token ? token.substring(0, 30) + '...' : '<span style="color: red;">MANQUANT</span>'}<br>
+                    Role: <strong>${role || '<span style="color: red;">MANQUANT</span>'}</strong><br>
+                    Username: ${username || '<span style="color: red;">MANQUANT</span>'}<br>
+                    Role === 'admin': ${role === 'admin' ? '✓ OUI' : '✗ NON (' + role + ')'}<br>
+                    Role === 'ADMIN': ${role === 'ADMIN' ? '✓ OUI' : '✗ NON'}<br>
+                    Permissions: ${permissions || 'MANQUANT'}
+                </div>
+            `;
+        }
+
+        function goToAdmin() {
+            const role = localStorage.getItem('user_role');
+            log(`Navigating to admin.html with role: ${role}`);
+
+            if (!localStorage.getItem('access_token')) {
+                alert('Aucun token trouvé! Connectez-vous d\'abord.');
+                return;
+            }
+
+            if (role !== 'admin') {
+                alert(`ATTENTION: Votre rôle est "${role}", pas "admin". Vous serez redirigé vers login.`);
+            }
+
+            window.location.href = 'admin.html';
+        }
+
+        function goToIndex() {
+            log('Navigating to index.html');
+            window.location.href = 'index.html';
+        }
+
+        // Log initial
+        window.addEventListener('load', function() {
+            log('Page loaded');
+            log(`Current URL: ${window.location.href}`);
+            checkStorage();
+        });
+    </script>
+</body>
+</html>

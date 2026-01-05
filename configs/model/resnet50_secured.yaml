@@ -1,0 +1,25 @@
+# Configuration modèle ResNet50 sécurisé
+model:
+  name: resnet50_secured
+  architecture: resnet50
+  pretrained: true
+  num_classes: 2
+  input_size: 224
+  freeze_backbone: false
+  adversarial_training: true
+  
+training:
+  epochs: 15
+  batch_size: 32
+  learning_rate: 0.0005
+  optimizer: adam
+  scheduler: step_lr
+  
+defenses:
+  - adversarial_training
+  - differential_privacy
+  - input_filtering
+  
+classes:
+  - dangerous
+  - safe

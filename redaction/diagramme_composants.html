@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramme de Composants UML</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .diagram-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .instructions code {
+            background-color: #263238;
+            color: #aed581;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .export-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Diagramme de Composants du Système</h1>
+
+    <div class="diagram-container">
+        <div class="mermaid">
+classDiagram
+    %% ===== DATA MANAGEMENT LAYER =====
+    class DataLoader {
+        +load() List~Image~
+        +preprocess() Array
+        +split() Tuple
+        -_validate_path()
+        -_load_image()
+    }
+
+    class DataValidator {
+        +validate() bool
+        +check_size() bool
+        +check_label() bool
+        -_verify_format()
+    }
+
+    class DataAugmentation {
+        +augment() Image
+        +rotate() Image
+        +flip() Image
+        +brightness() Image
+        +zoom() Image
+        -rotation_range: int
+        -zoom_range: tuple
+    }
+
+    %% ===== TRAINING LAYER =====
+    class MobileNetV2Model {
+        -base_model: MobileNetV2
+        -num_classes: int
+        -input_shape: tuple
+        +build() Model
+        +compile_model() void
+        +get_model() Model
+        -_add_top_layers()
+    }
+
+    class AdversarialGenerator {
+        +generate_fgsm(model, image, epsilon) Image
+        +generate_pgd(model, image, epsilon, steps) Image
+        +generate_cw(model, image, c, kappa) Image
+        -_compute_gradients()
+        -epsilon: float
+    }
+
+    class TrainingManager {
+        -model: Model
+        -epochs: int
+        -batch_size: int
+        +train_standard() History
+        +train_adversarial() History
+        +validate() Metrics
+        +save_model() void
+        -_create_callbacks()
+    }
+
+    class MetricsTracker {
+        -metrics_history: dict
+        +log_metrics(epoch, metrics) void
+        +plot_curves() Figure
+        +save_report() void
+        +get_best_epoch() int
+    }
+
+    %% ===== EVALUATION LAYER =====
+    class RobustnessEvaluator {
+        -model: Model
+        -attack_configs: dict
+        +test_fgsm() dict
+        +test_pgd() dict
+        +test_cw() dict
+        +compare_models() DataFrame
+        +generate_report() PDF
+        -_evaluate_attack()
+    }
+
+    class PerformanceMonitor {
+        +measure_latency() float
+        +measure_throughput() float
+        +memory_usage() float
+        +cpu_gpu_usage() dict
+        -_run_benchmark()
+    }
+
+    %% ===== DEPLOYMENT LAYER =====
+    class ModelServing {
+        -model: Model
+        -model_path: str
+        +load_model() void
+        +predict(image) dict
+        +preprocess_image(image) Array
+        +postprocess(prediction) dict
+        -_warm_up()
+    }
+
+    class APIServer {
+        -app: FastAPI
+        -model_serving: ModelServing
+        +predict_endpoint() Response
+        +evaluate_endpoint() Response
+        +robustness_endpoint() Response
+        +metrics_endpoint() Response
+        -_handle_error()
+    }
+
+    class WebInterface {
+        +upload_image() File
+        +show_results() HTML
+        +visualize() Chart
+        -_render_template()
+    }
+
+    class DockerContainer {
+        -python_version: str
+        -tensorflow_version: str
+        -requirements: List
+        +build() Image
+        +run() Container
+        -expose_port: int
+    }
+
+    %% ===== RELATIONSHIPS =====
+    DataLoader --> MobileNetV2Model : provides data
+    DataLoader --> DataAugmentation : uses
+    DataValidator --> DataLoader : validates for
+
+    MobileNetV2Model --> TrainingManager : trained by
+    AdversarialGenerator --> TrainingManager : generates for
+    TrainingManager --> MetricsTracker : logs to
+
+    MobileNetV2Model --> RobustnessEvaluator : tested by
+    AdversarialGenerator --> RobustnessEvaluator : used by
+    RobustnessEvaluator --> PerformanceMonitor : monitored by
+
+    MobileNetV2Model --> ModelServing : loaded by
+    ModelServing --> APIServer : serves
+    APIServer --> WebInterface : consumed by
+
+    DockerContainer ..> APIServer : contains
+    DockerContainer ..> WebInterface : contains
+    DockerContainer ..> TrainingManager : contains
+
+    %% ===== INTERFACES =====
+    class IModel {
+        <<interface>>
+        +build()
+        +compile()
+        +train()
+        +predict()
+        +evaluate()
+    }
+
+    class IAttackGenerator {
+        <<interface>>
+        +generate(model, image, epsilon)
+        +get_attack_name()
+    }
+
+    class IDataPipeline {
+        <<interface>>
+        +load_data()
+        +preprocess()
+        +augment()
+        +get_batch()
+    }
+
+    MobileNetV2Model ..|> IModel : implements
+    AdversarialGenerator ..|> IAttackGenerator : implements
+    DataLoader ..|> IDataPipeline : implements
+
+    %% ===== NOTES =====
+    note for MobileNetV2Model "Utilise transfer learning\navec poids ImageNet"
+    note for AdversarialGenerator "Implémente FGSM, PGD, C&W"
+    note for DockerContainer "Environnement isolé\npour déploiement"
+        </div>
+    </div>
+
+    <div class="export-section">
+        <button onclick="downloadSVG()">📥 Télécharger en SVG</button>
+        <button onclick="downloadPNG()">📥 Télécharger en PNG</button>
+        <button onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions pour inclure dans le mémoire LaTeX</h3>
+        <ol>
+            <li><strong>Exporter le diagramme :</strong>
+                <ul>
+                    <li>Cliquez sur "Télécharger en PNG" (recommandé pour LaTeX)</li>
+                    <li>Sauvegardez le fichier dans <code>figures/diagramme_composants.png</code></li>
+                </ul>
+            </li>
+            <li><strong>Dans votre fichier LaTeX :</strong>
+                <ul>
+                    <li>Décommentez la ligne dans <code>Chapitre_3.1.tex</code></li>
+                    <li><code>\includegraphics[width=\textwidth]{figures/diagramme_composants.png}</code></li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>🔧 Composants principaux</h3>
+        <ul>
+            <li><strong>Data Management Layer :</strong> DataLoader, DataValidator, DataAugmentation</li>
+            <li><strong>Training Layer :</strong> MobileNetV2Model, AdversarialGenerator, TrainingManager, MetricsTracker</li>
+            <li><strong>Evaluation Layer :</strong> RobustnessEvaluator, PerformanceMonitor</li>
+            <li><strong>Deployment Layer :</strong> ModelServing, APIServer, WebInterface, DockerContainer</li>
+        </ul>
+
+        <h3>🔗 Relations clés</h3>
+        <ul>
+            <li>Flèches pleines (→) : Dépendances directes</li>
+            <li>Flèches pointillées (..>) : Composition/Containment</li>
+            <li>Ligne pointillée avec triangle (..|>) : Implémentation d'interface</li>
+        </ul>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif'
+            },
+            classDiagram: {
+                curve: 'basis'
+            }
+        });
+
+        function downloadSVG() {
+            const svg = document.querySelector('.mermaid svg');
+            if (!svg) {
+                alert('Veuillez attendre que le diagramme soit chargé');
+                return;
+            }
+
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'diagramme_composants.svg';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadPNG() {
+            const svg = document.querySelector('.mermaid svg');
+            if (!svg) {
+                alert('Veuillez attendre que le diagramme soit chargé');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const svgData = new XMLSerializer().serializeToString(svg);
+
+            const img = new Image();
+            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            img.onload = function() {
+                canvas.width = img.width * 2;
+                canvas.height = img.height * 2;
+
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'diagramme_composants.png';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+
+                URL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+        }
+    </script>
+</body>
+</html>

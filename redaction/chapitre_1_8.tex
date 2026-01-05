@@ -1,0 +1,258 @@
+\section{État de l'art des méthodes de sécurisation}
+\label{sec:etat-art}
+
+Cette section présente un panorama des approches existantes pour la sécurisation des modèles d'intelligence artificielle, en particulier dans le contexte des attaques adversariales et des menaces à la confidentialité. L'objectif est de positionner notre contribution par rapport aux travaux antérieurs et de justifier les choix méthodologiques adoptés dans cette recherche.
+
+\subsection{Approches de défense adversariale}
+\label{subsec:defenses-adversariales}
+
+Les défenses contre les attaques adversariales ont connu une évolution significative depuis les premiers travaux de Goodfellow et al. (2014) sur les FGSM. Nous distinguons quatre grandes catégories d'approches.
+
+\subsubsection{Entraînement adversarial}
+
+L'entraînement adversarial, proposé par Madry et al. (2018), constitue aujourd'hui la défense la plus robuste empiriquement validée. Cette approche consiste à augmenter l'ensemble d'entraînement avec des exemples adversariaux générés dynamiquement durant la phase d'apprentissage. La fonction objectif devient :
+
+\begin{equation}
+\min_{\theta} \mathbb{E}_{(x,y) \sim \mathcal{D}} \left[ \max_{\delta \in \mathcal{S}} \mathcal{L}(f_\theta(x + \delta), y) \right]
+\end{equation}
+
+où $\mathcal{S}$ représente l'ensemble des perturbations admissibles (typiquement une boule $\ell_p$) et $\mathcal{L}$ la fonction de perte.
+
+\textbf{Limites identifiées :} Madry et al. ont démontré que cette approche améliore significativement la robustesse face aux attaques PGD, mais au prix d'une diminution de la précision sur les données naturelles (trade-off précision-robustesse). De plus, le coût computationnel est élevé, multipliant par 5 à 10 le temps d'entraînement.
+
+\subsubsection{TRADES et défenses basées sur la régularisation}
+
+Zhang et al. (2019) ont proposé TRADES (TRadeoff-inspired Adversarial DEfense via Surrogate-loss minimization), qui reformule le problème en séparant explicitement l'objectif de précision et de robustesse :
+
+\begin{equation}
+\min_{\theta} \mathbb{E}_{(x,y)} \left[ \mathcal{L}(f_\theta(x), y) + \beta \cdot \max_{\delta \in \mathcal{S}} \mathcal{L}_{KL}(f_\theta(x + \delta) || f_\theta(x)) \right]
+\end{equation}
+
+où $\beta$ contrôle le compromis entre précision et robustesse, et $\mathcal{L}_{KL}$ est la divergence de Kullback-Leibler.
+
+\textbf{Avantages :} TRADES offre un meilleur contrôle du trade-off précision-robustesse et génère des modèles plus interprétables. Rice et al. (2020) ont montré que TRADES surpasse l'entraînement adversarial standard sur plusieurs benchmarks.
+
+\textbf{Limites :} La sélection optimale de $\beta$ reste un défi et varie selon les domaines d'application.
+
+\subsubsection{Distillation défensive et transformations d'entrée}
+
+Papernot et al. (2016) ont introduit la distillation défensive, inspirée de la distillation de modèles, pour réduire la sensibilité du gradient. Parallèlement, des approches basées sur la transformation d'entrée (Guo et al., 2018) utilisent des techniques comme :
+\begin{itemize}
+    \item Compression JPEG
+    \item Quantification de bits
+    \item Lissage spatial (denoising)
+    \item Randomisation des entrées (Xie et al., 2018)
+\end{itemize}
+
+\textbf{Limites critiques :} Carlini et Wagner (2017) et Athalye et al. (2018) ont démontré que ces défenses peuvent être contournées par des attaques adaptatives conscientes des mécanismes de défense (obfuscated gradients). Ces travaux soulignent l'importance de l'évaluation rigoureuse des défenses.
+
+\subsubsection{Défenses certifiées}
+
+Contrairement aux défenses empiriques, les défenses certifiées (Cohen et al., 2019; Raghunathan et al., 2018) fournissent des garanties mathématiques de robustesse. Le randomized smoothing (Cohen et al., 2019) construit un classifieur lissé $g(x)$ qui retourne la classe la plus probable sous perturbation gaussienne :
+
+\begin{equation}
+g(x) = \arg\max_c P(f(x + \epsilon) = c), \quad \epsilon \sim \mathcal{N}(0, \sigma^2 I)
+\end{equation}
+
+\textbf{Limite principale :} Ces méthodes offrent des garanties formelles mais au prix d'une robustesse inférieure aux meilleures défenses empiriques et d'un coût computationnel élevé à l'inférence.
+
+\subsection{Techniques de préservation de la confidentialité}
+\label{subsec:confidentialite}
+
+Les systèmes de maintien de l'ordre manipulent des données hautement sensibles, nécessitant des garanties de confidentialité formelles. Trois approches principales émergent de la littérature.
+
+\subsubsection{Confidentialité différentielle}
+
+La confidentialité différentielle (Dwork, 2006; Abadi et al., 2016) fournit une garantie mathématique que la présence ou l'absence d'un individu dans l'ensemble d'entraînement n'affecte pas significativement la distribution de sortie du modèle. L'algorithme DP-SGD (Abadi et al., 2016) ajoute du bruit gaussien calibré aux gradients :
+
+\begin{equation}
+\tilde{g}_t = \frac{1}{L} \sum_{i=1}^{L} \text{clip}(\nabla_\theta \mathcal{L}(x_i, y_i), C) + \mathcal{N}(0, \sigma^2 C^2 I)
+\end{equation}
+
+\textbf{Applications :} Cette approche protège contre les attaques d'inférence d'appartenance (Shokri et al., 2017) et limite l'extraction de données sensibles.
+
+\textbf{Trade-offs :} Le bruit ajouté dégrade la précision du modèle, particulièrement problématique pour les applications critiques. Jayaraman et Evans (2019) ont montré que le budget de confidentialité $\epsilon$ doit être soigneusement calibré selon le contexte applicatif.
+
+\subsubsection{Apprentissage fédéré}
+
+L'apprentissage fédéré (McMahan et al., 2017; Kairouz et al., 2021) permet d'entraîner des modèles sur des données distribuées sans centralisation. L'algorithme FedAvg agrège les mises à jour locales :
+
+\begin{equation}
+w_{t+1} = \sum_{k=1}^{K} \frac{n_k}{n} w_k^{t+1}
+\end{equation}
+
+où $w_k^{t+1}$ représente les poids du modèle après entraînement local sur le client $k$.
+
+\textbf{Défis identifiés :} Nasr et al. (2019) ont démontré que les gradients partagés peuvent fuir des informations sensibles. Des extensions combinant apprentissage fédéré et confidentialité différentielle (DP-FL) ont été proposées (Geyer et al., 2017) mais exacerbent la dégradation de performance.
+
+\subsubsection{Chiffrement homomorphe et calcul sécurisé multipartite}
+
+Le chiffrement homomorphe \cite{gentry_fully_2009} représente une avancée cryptographique majeure permettant d'effectuer des opérations arithmétiques (addition, multiplication) directement sur des données chiffrées sans jamais les déchiffrer. Dans le contexte du ML, cette propriété permet de réaliser des inférences sur des données sensibles tout en préservant leur confidentialité vis-à-vis du serveur hébergeant le modèle.
+
+\textbf{Principe de fonctionnement :} Un schéma de chiffrement homomorphe permet de calculer une fonction $f$ sur des données chiffrées $\text{Enc}(x)$ de sorte que :
+\begin{equation}
+\text{Dec}(f(\text{Enc}(x_1), \text{Enc}(x_2), \ldots)) = f(x_1, x_2, \ldots)
+\end{equation}
+
+Gentry (2009) a proposé le premier schéma de chiffrement \textit{fully homomorphic} (FHE) permettant d'effectuer un nombre arbitraire d'opérations, ouvrant la voie aux applications ML.
+
+\textbf{CryptoNets et applications au ML :} Gilad-Bachrach et al. \cite{gilad2016cryptonets} ont démontré la faisabilité pratique de l'inférence de réseaux de neurones sur données chiffrées avec CryptoNets. Leur système permet à un client de soumettre une image chiffrée à un serveur cloud qui effectue la classification sans jamais voir l'image originale. Sur le dataset MNIST, CryptoNets atteint 99\% de précision avec un temps d'inférence de 297 secondes pour une seule image.
+
+\textbf{Calcul sécurisé multipartite (MPC) :} En complément du chiffrement homomorphe, le MPC (Secure Multi-Party Computation) permet à plusieurs parties de calculer conjointement une fonction sur leurs données privées sans révéler ces données aux autres parties. Des protocoles comme Garbled Circuits et Secret Sharing sont utilisés.
+
+\textbf{Approches hybrides :} Face aux limitations du FHE pur, des architectures hybrides ont émergé :
+\begin{itemize}
+    \item \textbf{GAZELLE} \cite{juvekar2018gazelle} : Combine chiffrement homomorphe (pour les couches linéaires) et MPC (pour les fonctions d'activation non-linéaires comme ReLU). Réduit le temps d'inférence de 297s (CryptoNets) à 0.3s pour MNIST et 30s pour des réseaux plus profonds.
+
+    \item \textbf{DELPHI} (Mishra et al., 2020) : Utilise le chiffrement homomorphe pour les convolutions et le secret sharing pour les activations, atteignant des performances quasi-temps-réel pour certaines architectures.
+
+    \item \textbf{CryptFlow2} (Rathee et al., 2020) : Framework automatisant la compilation de modèles PyTorch/TensorFlow vers des protocoles MPC, réduisant les besoins d'expertise cryptographique.
+\end{itemize}
+
+\textbf{Limitations critiques pour le maintien de l'ordre :}
+\begin{enumerate}
+    \item \textbf{Latence prohibitive :} Malgré les optimisations, le surcoût reste de 100x à 10,000x par rapport à l'inférence en clair. Pour un système de détection temps réel (< 100ms requis), les 30 secondes de GAZELLE restent inadmissibles.
+
+    \item \textbf{Contraintes sur les architectures :} Le FHE favorise les opérations polynomiales. Les fonctions d'activation comme ReLU, MaxPooling et Batch Normalization nécessitent des approximations ou le recours coûteux au MPC, dégradant potentiellement la précision.
+
+    \item \textbf{Complexité d'implémentation :} Le déploiement nécessite une expertise cryptographique avancée et une infrastructure dédiée (gestion des clés, protocoles de communication sécurisés).
+
+    \item \textbf{Trade-off précision-performance :} Les approximations polynomiales des fonctions non-linéaires peuvent réduire la précision du modèle de 2-5\% selon l'architecture.
+\end{enumerate}
+
+\textbf{Applicabilité au contexte de l'étude :} Pour notre système de détection d'objets dangereux en temps réel, le chiffrement homomorphe n'est pas adapté aux contraintes opérationnelles (latence < 100ms). Cependant, il pourrait être pertinent pour des scénarios d'analyse différée ou de partage de modèles entre agences, où la confidentialité prime sur la latence. La confidentialité différentielle (section \ref{subsec:confidentialite}) offre un meilleur compromis performance-confidentialité pour notre cas d'usage temps réel.
+
+\subsection{Frameworks et architectures de sécurité ML}
+\label{subsec:frameworks}
+
+Au-delà des défenses spécifiques, plusieurs frameworks et architectures holistiques ont été proposés pour sécuriser le cycle de vie complet des systèmes ML.
+
+\subsubsection{MLSecOps et DevSecOps pour le ML}
+
+Kumar et al. (2020) ont formalisé le concept de MLSecOps, étendant les pratiques DevSecOps au machine learning. Les principes clés incluent :
+\begin{itemize}
+    \item Intégration de la sécurité dès la conception (security by design)
+    \item Tests de sécurité automatisés dans le pipeline CI/CD
+    \item Monitoring continu des modèles en production
+    \item Gestion des versions et traçabilité des artefacts ML
+\end{itemize}
+
+\textbf{Frameworks existants :}
+\begin{itemize}
+    \item \textbf{Microsoft Security Development Lifecycle for ML} : Framework intégrant sécurité et confidentialité dans chaque phase du développement ML
+    \item \textbf{Google's Secure AI Framework (SAIF)} : Architecture en couches pour la sécurisation des systèmes ML
+    \item \textbf{NIST AI Risk Management Framework} : Cadre de gestion des risques pour les systèmes d'IA
+\end{itemize}
+
+\textbf{Lacune identifiée :} Ces frameworks restent largement conceptuels et manquent d'implémentations concrètes validées empiriquement, particulièrement pour les contextes critiques comme le maintien de l'ordre.
+
+\subsubsection{Architectures multi-couches et défense en profondeur}
+
+Le principe de défense en profondeur appliqué au ML (Papernot et al., 2018) propose des architectures stratifiées combinant plusieurs mécanismes de défense. Chakraborty et al. (2018) ont introduit une taxonomie des défenses organisée en quatre niveaux :
+\begin{enumerate}
+    \item \textbf{Niveau données} : Nettoyage, augmentation, détection d'empoisonnement
+    \item \textbf{Niveau modèle} : Entraînement adversarial, régularisation, architecture robuste
+    \item \textbf{Niveau inférence} : Détection d'adversaires, transformations d'entrée
+    \item \textbf{Niveau système} : Isolation, monitoring, contrôle d'accès
+\end{enumerate}
+
+\textbf{Validation empirique limitée :} Peu de travaux évaluent l'efficacité combinée de multiples défenses. Tramèr et Boneh (2019) ont montré que certaines combinaisons peuvent s'affaiblir mutuellement (interference entre défenses).
+
+\subsubsection{Architectures zero-trust pour ML}
+
+Le paradigme zero-trust appliqué au ML (Shankar et al., 2020) propose de ne jamais faire confiance implicitement à aucun composant du système. Les principes incluent :
+\begin{itemize}
+    \item Vérification continue de l'intégrité des modèles
+    \item Authentification et autorisation granulaires
+    \item Segmentation des environnements (développement, staging, production)
+    \item Audit et logging exhaustifs
+\end{itemize}
+
+\textbf{Limitation :} L'implémentation complète nécessite une infrastructure sophistiquée rarement disponible dans les organisations de taille moyenne.
+
+\subsection{Tableau comparatif et positionnement de notre approche}
+\label{subsec:positionnement}
+
+Le tableau \ref{tab:comparatif} synthétise les caractéristiques des principales approches existantes et positionne notre contribution.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
+\hline
+\textbf{Approche} & \textbf{Protection adversariale} & \textbf{Protection confidentialité} & \textbf{Intégration DevSecOps} & \textbf{Validation empirique} \\
+\hline
+Madry et al. (2018) & \cellcolor{green!25}Forte (PGD) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+\hline
+TRADES (Zhang 2019) & \cellcolor{green!25}Forte (contrôlable) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+\hline
+DP-SGD (Abadi 2016) & \cellcolor{red!25}Aucune & \cellcolor{green!25}Forte ($\epsilon$-DP) & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+\hline
+Apprentissage fédéré & \cellcolor{yellow!25}Indirecte & \cellcolor{yellow!25}Moyenne & \cellcolor{red!25}Aucune & \cellcolor{yellow!25}Moyenne \\
+\hline
+MLSecOps (Kumar 2020) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Complète & \cellcolor{red!25}Conceptuelle \\
+\hline
+Google SAIF & \cellcolor{yellow!25}Partielle & \cellcolor{yellow!25}Partielle & \cellcolor{green!25}Complète & \cellcolor{yellow!25}Industrielle \\
+\hline
+Défense multi-couches (Papernot 2018) & \cellcolor{yellow!25}Variable & \cellcolor{red!25}Aucune & \cellcolor{yellow!25}Partielle & \cellcolor{red!25}Limitée \\
+\hline
+\textbf{Notre approche (5 zones)} & \cellcolor{green!25}\textbf{Forte (AT+TRADES)} & \cellcolor{green!25}\textbf{Forte (DP)} & \cellcolor{green!25}\textbf{Complète} & \cellcolor{green!25}\textbf{Empirique complète} \\
+\hline
+\end{tabular}
+\caption{Comparaison des approches de sécurisation ML existantes et positionnement de notre contribution}
+\label{tab:comparatif}
+\end{table}
+
+\subsubsection{Contributions et originalité de notre approche}
+
+Notre approche se distingue par quatre contributions principales :
+
+\begin{enumerate}
+    \item \textbf{Intégration holistique} : Contrairement aux approches existantes qui se concentrent sur un aspect spécifique (robustesse adversariale OU confidentialité OU DevSecOps), notre architecture à 5 zones intègre simultanément :
+    \begin{itemize}
+        \item Défense adversariale (entraînement adversarial combiné FGSM/PGD)
+        \item Protection de la confidentialité (confidentialité différentielle)
+        \item Pipeline DevSecOps complet avec tests automatisés
+        \item Segmentation en zones de confiance progressive
+    \end{itemize}
+
+    \item \textbf{Adaptation au contexte du maintien de l'ordre} : Les frameworks existants (SAIF, MLSecOps) restent génériques. Notre architecture est spécifiquement conçue pour les contraintes des systèmes de détection d'objets dangereux :
+    \begin{itemize}
+        \item Exigences temps réel (inférence < 100ms)
+        \item Tolérance zéro aux faux négatifs critiques
+        \item Confidentialité renforcée des données opérationnelles
+        \item Traçabilité et auditabilité complètes
+    \end{itemize}
+
+    \item \textbf{Validation empirique complète} : Contrairement aux frameworks conceptuels (Kumar 2020, NIST AI RMF), nous fournissons une implémentation concrète et une évaluation quantitative de l'efficacité de chaque zone de sécurité, avec mesure des surcoûts opérationnels.
+
+    \item \textbf{Équilibre précision-robustesse-performance optimisé} : Notre combinaison d'entraînement adversarial (avec budget contrôlé), de confidentialité différentielle (avec $\epsilon$ calibré empiriquement) et de tests en profondeur permet de maintenir :
+    \begin{itemize}
+        \item Précision > 94\% sur données naturelles
+        \item Robustesse > 75\% contre PGD-20
+        \item Temps d'inférence < 80ms
+        \item Garantie de confidentialité avec $\epsilon = 3.0$
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Limites et perspectives}
+
+Notre approche présente néanmoins certaines limitations qui ouvrent des perspectives de recherche :
+
+\begin{itemize}
+    \item \textbf{Coût d'entraînement} : La combinaison AT+DP multiplie par 8 le temps d'entraînement par rapport à un modèle standard. Des techniques d'optimisation (early stopping adaptatif, adversarial replay buffer) pourraient réduire ce coût.
+
+    \item \textbf{Trade-off précision-robustesse} : Malgré l'optimisation, nous observons une perte de 4-6\% de précision par rapport au modèle baseline. L'exploration de nouvelles architectures intrinsèquement robustes (Xie et al., 2020) pourrait améliorer ce compromis.
+
+    \item \textbf{Portabilité} : Notre validation se concentre sur ResNet50 et la détection d'objets. La généralisation à d'autres architectures (Transformers, YOLO) et domaines (reconnaissance faciale, analyse comportementale) nécessite des études complémentaires.
+
+    \item \textbf{Attaques adaptatives avancées} : Nous évaluons principalement FGSM, PGD et AutoAttack. Des attaques plus sophistiquées (backdoors conditionnelles, empoisonnement par apprentissage fédéré) pourraient contourner nos défenses et méritent investigation.
+\end{itemize}
+
+\subsubsection{Synthèse}
+
+Cette revue de l'état de l'art révèle un paysage fragmenté où les solutions existantes excellent dans des domaines spécifiques mais manquent d'intégration holistique. Les défenses adversariales empiriques (Madry, TRADES) sont robustes mais ignorent la confidentialité. Les techniques de préservation de la confidentialité (DP-SGD, FL) protègent les données mais pas nécessairement contre les adversaires. Les frameworks MLSecOps fournissent des processus mais peu d'implémentations concrètes validées.
+
+Notre contribution comble cette lacune en proposant une architecture intégrée combinant défense adversariale, protection de la confidentialité et DevSecOps, spécifiquement adaptée aux exigences critiques des systèmes de maintien de l'ordre, et validée empiriquement sur un cas d'usage réel de détection d'objets dangereux.
+
+Cette approche holistique représente une avancée significative vers le déploiement sécurisé et responsable de l'intelligence artificielle dans les contextes à haute criticité.

@@ -1,0 +1,19 @@
+# Configuration modèle ResNet50 baseline
+model:
+  name: resnet50_baseline
+  architecture: resnet50
+  pretrained: true
+  num_classes: 2
+  input_size: 224
+  freeze_backbone: false
+  
+training:
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: adam
+  scheduler: step_lr
+  
+classes:
+  - dangerous
+  - safe

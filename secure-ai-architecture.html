@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture de Sécurisation IA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .architecture-diagram {
+            position: relative;
+            width: 100%;
+            height: 800px;
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .zone {
+            position: absolute;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .zone:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        
+        .zone-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .zone-content {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .zone-1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 200px;
+            height: 150px;
+            top: 350px;
+            left: 20px;
+        }
+        
+        .zone-2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            width: 200px;
+            height: 150px;
+            top: 350px;
+            left: 250px;
+        }
+        
+        .zone-3 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            width: 200px;
+            height: 150px;
+            top: 350px;
+            left: 480px;
+        }
+        
+        .zone-4 {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            width: 200px;
+            height: 150px;
+            top: 350px;
+            left: 710px;
+        }
+        
+        .zone-5 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: #333;
+            width: 300px;
+            height: 120px;
+            top: 600px;
+            left: 350px;
+        }
+        
+        .external-systems {
+            position: absolute;
+            top: 50px;
+            left: 300px;
+            width: 400px;
+            padding: 20px;
+            background: #e6fffa;
+            border: 2px solid #38b2ac;
+            border-radius: 10px;
+        }
+        
+        .threats {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            width: 250px;
+            padding: 15px;
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+            border-radius: 10px;
+        }
+        
+        .arrow {
+            position: absolute;
+            background: #718096;
+            height: 2px;
+        }
+        
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid #718096;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+        
+        .arrow-1 {
+            width: 20px;
+            top: 425px;
+            left: 225px;
+        }
+        
+        .arrow-2 {
+            width: 20px;
+            top: 425px;
+            left: 455px;
+        }
+        
+        .arrow-3 {
+            width: 20px;
+            top: 425px;
+            left: 685px;
+        }
+        
+        .docker-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #0db7ed;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .kubernetes-badge {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #326ce5;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .component {
+            background: white;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 5px 0;
+            font-size: 11px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .flow-vertical {
+            position: absolute;
+            width: 2px;
+            background: #cbd5e0;
+            left: 500px;
+            top: 200px;
+            height: 130px;
+        }
+        
+        .flow-horizontal {
+            position: absolute;
+            height: 2px;
+            background: #cbd5e0;
+            top: 530px;
+            left: 120px;
+            width: 790px;
+        }
+        
+        .protection-layer {
+            position: absolute;
+            border: 3px dashed #9f7aea;
+            border-radius: 20px;
+            top: 320px;
+            left: 10px;
+            width: 950px;
+            height: 200px;
+            background: rgba(159, 122, 234, 0.05);
+        }
+        
+        .protection-label {
+            position: absolute;
+            top: 305px;
+            left: 400px;
+            background: white;
+            padding: 5px 15px;
+            color: #9f7aea;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 15px;
+            border: 2px solid #9f7aea;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .active-flow {
+            animation: pulse 2s infinite;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 70px;
+            left: 350px;
+            display: flex;
+            gap: 20px;
+            font-size: 11px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Architecture de Sécurisation des Modèles IA - Systèmes de Maintien de l'Ordre</h1>
+        
+        <div class="architecture-diagram">
+            <!-- Systèmes externes -->
+            <div class="external-systems">
+                <div style="font-weight: bold; margin-bottom: 10px;">📥 Sources de Données</div>
+                <div class="component">📷 Caméras de surveillance</div>
+                <div class="component">🗄️ Bases de données police</div>
+                <div class="component">📡 Capteurs IoT</div>
+                <div class="component">📊 Données historiques</div>
+            </div>
+            
+            <!-- Menaces -->
+            <div class="threats">
+                <div style="font-weight: bold; margin-bottom: 10px; color: #e53e3e;">⚠️ Menaces Identifiées</div>
+                <div class="component" style="background: #fff5f5;">🎯 Attaques adversariales</div>
+                <div class="component" style="background: #fff5f5;">☠️ Empoisonnement de données</div>
+                <div class="component" style="background: #fff5f5;">🔓 Extraction de modèle</div>
+                <div class="component" style="background: #fff5f5;">⚖️ Biais algorithmiques</div>
+            </div>
+            
+            <!-- Couche de protection -->
+            <div class="protection-layer"></div>
+            <div class="protection-label">🔒 Périmètre de Sécurité MLOps</div>
+            
+            <!-- Zone 1: Data Security -->
+            <div class="zone zone-1" onclick="showDetails('zone1')">
+                <div class="zone-title">Zone 1: Sécurité des Données</div>
+                <div class="zone-content">
+                    • Validation des entrées<br>
+                    • Détection poison<br>
+                    • Anonymisation<br>
+                    • Chiffrement AES-256<br>
+                    • Audit des données
+                </div>
+            </div>
+            
+            <!-- Zone 2: Training Security -->
+            <div class="zone zone-2" onclick="showDetails('zone2')">
+                <div class="zone-title">Zone 2: Entraînement Sécurisé</div>
+                <div class="zone-content">
+                    • Adversarial Training<br>
+                    • Differential Privacy<br>
+                    • Environnement isolé<br>
+                    • Versioning signé<br>
+                    • Monitoring robustesse
+                </div>
+            </div>
+            
+            <!-- Zone 3: Validation -->
+            <div class="zone zone-3" onclick="showDetails('zone3')">
+                <div class="zone-title">Zone 3: Validation & Test</div>
+                <div class="zone-content">
+                    • Tests adversariaux<br>
+                    • Audit de biais<br>
+                    • Certification ISO<br>
+                    • Validation RGPD<br>
+                    • Sandbox isolée
+                </div>
+            </div>
+            
+            <!-- Zone 4: Production -->
+            <div class="zone zone-4" onclick="showDetails('zone4')">
+                <div class="zone-title">Zone 4: Production Sécurisée</div>
+                <div class="zone-content">
+                    • API Gateway<br>
+                    • Rate Limiting<br>
+                    • Chiffrement homo.<br>
+                    • Load Balancing<br>
+                    • Détection anomalies
+                </div>
+            </div>
+            
+            <!-- Zone 5: Governance -->
+            <div class="zone zone-5" onclick="showDetails('zone5')">
+                <div class="zone-title">Zone 5: Gouvernance & Surveillance</div>
+                <div class="zone-content">
+                    <div style="display: flex; justify-content: space-around;">
+                        <div>
+                            • Dashboard temps réel<br>
+                            • Alertes graduées<br>
+                            • Logs immutables
+                        </div>
+                        <div>
+                            • Conformité RGPD/AI Act<br>
+                            • Rapports automatiques<br>
+                            • Incident Response
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Flèches de flux -->
+            <div class="arrow arrow-1 active-flow"></div>
+            <div class="arrow arrow-2 active-flow"></div>
+            <div class="arrow arrow-3 active-flow"></div>
+            
+            <!-- Flux de données -->
+            <div class="flow-vertical"></div>
+            <div class="flow-horizontal"></div>
+            
+            <!-- Technologies -->
+            <div class="docker-container">🐳 Docker Containers</div>
+            <div class="kubernetes-badge">☸️ Kubernetes Orchestration</div>
+            
+            <!-- Légende -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                    <span>Ingestion</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                    <span>Training</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                    <span>Validation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
+                    <span>Production</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showDetails(zone) {
+            const details = {
+                zone1: "Zone 1: Première ligne de défense contre les données malveillantes",
+                zone2: "Zone 2: Environnement d'apprentissage renforcé et sécurisé",
+                zone3: "Zone 3: Validation exhaustive avant déploiement",
+                zone4: "Zone 4: Infrastructure de production haute sécurité",
+                zone5: "Zone 5: Centre de commandement et conformité"
+            };
+            console.log(details[zone]);
+        }
+    </script>
+</body>
+</html>

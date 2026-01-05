@@ -1,0 +1,169 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment target'
+        required: true
+        default: 'local'
+        type: choice
+        options:
+          - local
+          - vm
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  security-tests:
+    name: Security & Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run unit tests
+        run: |
+          docker-compose -f docker/docker-compose.dev.yml build
+          docker-compose -f docker/docker-compose.dev.yml run --rm test
+
+      - name: Security scan with Bandit
+        run: bandit -r src/ -ll
+        continue-on-error: false
+
+      - name: Dependency audit
+        run: safety check
+        continue-on-error: true
+
+  build-production:
+    name: Build Production Images
+    runs-on: ubuntu-latest
+    needs: security-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build baseline API
+        run: docker build -f docker/Dockerfile.baseline -t secure-ai-baseline:latest .
+
+      - name: Build secured API
+        run: docker build -f docker/Dockerfile.secured -t secure-ai-secured:latest .
+
+      - name: Test images
+        run: |
+          docker run --rm secure-ai-baseline:latest python -c "import fastapi, torch; print('OK')"
+          docker run --rm secure-ai-secured:latest python -c "import fastapi, torch, opacus; print('OK')"
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-production
+    environment:
+      name: production
+      url: https://localhost
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy production stack
+        run: docker-compose -f docker/docker-compose.prod.yml up -d
+
+      - name: Wait for PostgreSQL
+        run: timeout 60 bash -c 'until docker exec secure-ai-db-prod1 pg_isready -U secure_ai; do sleep 2; done'
+
+      - name: Wait for Redis
+        run: timeout 60 bash -c 'until docker exec secure-ai-redis-prod1 redis-cli ping; do sleep 2; done'
+
+      - name: Wait for Baseline API
+        run: timeout 60 bash -c 'until curl -sf http://localhost:8001/health; do sleep 2; done'
+
+      - name: Wait for Secured API
+        run: timeout 60 bash -c 'until curl -sf http://localhost:8002/health; do sleep 2; done'
+
+      - name: Verify all containers
+        run: |
+          docker-compose -f docker/docker-compose.prod.yml ps
+          echo "Deployment successful!"
+
+  smoke-tests:
+    name: Post-Deployment Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y curl jq
+
+      - name: Test Baseline API
+        run: curl -sf http://localhost:8001/health
+
+      - name: Test Secured API
+        run: curl -sf http://localhost:8002/health
+
+      - name: Test Web Interface
+        run: curl -sf http://localhost:8080
+
+      - name: Test Prometheus
+        run: curl -sf http://localhost:9090/-/healthy
+
+      - name: Test Grafana
+        run: curl -sf http://localhost:3000/api/health
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy, smoke-tests]
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Stop failed deployment
+        run: |
+          echo "Deployment failed. Rolling back..."
+          docker-compose -f docker/docker-compose.prod.yml down
+          docker system prune -f
+
+      - name: Send notification
+        run: |
+          echo "=== DEPLOYMENT FAILED ==="
+          echo "Check logs for details"
+
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [security-tests, build-production, deploy, smoke-tests]
+    if: always()
+    steps:
+      - name: Deployment Success
+        if: needs.smoke-tests.result == 'success'
+        run: |
+          echo "=== DEPLOYMENT SUCCESSFUL ==="
+          echo "Baseline API: http://localhost:8001"
+          echo "Secured API: http://localhost:8002"
+          echo "Web Interface: http://localhost:8080"
+          echo "Grafana: http://localhost:3000"
+          echo "Prometheus: http://localhost:9090"
+
+      - name: Deployment Failure
+        if: needs.smoke-tests.result != 'success'
+        run: |
+          echo "=== DEPLOYMENT FAILED ==="
+          echo "Check workflow logs for details"

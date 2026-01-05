@@ -1,0 +1,139 @@
+# Docker Compose pour l'environnement de développement
+services:
+  # Environnement de développement principal
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: secure-ai-dev1
+    volumes:
+      - ../:/workspace
+      - ~/.ssh:/root/.ssh:ro  # Pour git
+      - ../docker/entrypoint-dev.sh:/entrypoint.sh:ro
+    ports:
+      - "127.0.0.1:9800:8000"  # API
+      - "127.0.0.1:5680:5678"  # Debug
+    environment:
+      - PYTHONPATH=/workspace
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - JWT_SECRET=${JWT_SECRET:-secure-ai-detection-jwt-secret-key-change-in-production-2024}
+    stdin_open: true
+    tty: true
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    networks:
+      - secure-ai-network
+
+  # Tests automatisés
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    container_name: secure-ai-test1
+    volumes:
+      - ../:/app
+      - test-results:/app/htmlcov
+    networks:
+      - secure-ai-network
+
+  # Base de données pour logs et métriques
+  postgres:
+    image: postgres:15-alpine
+    container_name: secure-ai-db1
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-secure_ai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_change_in_prod}
+      - POSTGRES_DB=${POSTGRES_DB:-ai_metrics}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5433:5432"
+    networks:
+      - secure-ai-network
+
+  # Redis pour cache et queue
+  redis:
+    image: redis:7-alpine
+    container_name: secure-ai-redis1
+    ports:
+      - "127.0.0.1:6380:6379"
+    networks:
+      - secure-ai-network
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: secure-ai-prometheus1
+    volumes:
+      - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../configs/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9890:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - secure-ai-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: secure-ai-grafana1
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=redis-datasource
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/ai-detection-dashboard.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../configs/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
+      - ../configs/monitoring/grafana-datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "127.0.0.1:3500:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - secure-ai-network
+
+  # Node Exporter pour métriques système
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: secure-ai-node-exporter1
+    ports:
+      - "127.0.0.1:9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - secure-ai-network
+
+  # Interface Web
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    container_name: secure-ai-web1
+    ports:
+      - "127.0.0.1:8800:80"
+    depends_on:
+      - dev
+    networks:
+      - secure-ai-network
+
+networks:
+  secure-ai-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+  test-results:

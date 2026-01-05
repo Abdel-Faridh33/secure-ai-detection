@@ -1,0 +1,297 @@
+================================================================================
+DIAGRAMME : Flux de Données (Data Flow Diagram)
+================================================================================
+
+[Ce fichier contient la description du diagramme de flux de données]
+[À créer avec draw.io ou un outil de diagrammes]
+
+PHASE 1 : PRÉPARATION DES DONNÉES
+==================================
+
+┌──────────────┐
+│  Dataset     │
+│  Kaggle      │─────┐
+│  (Weapons)   │     │
+└──────────────┘     │
+                     ▼
+                ┌─────────────┐
+                │   Data      │
+                │   Merger    │
+                └─────────────┘
+                     ▲
+┌──────────────┐     │
+│  Dataset     │     │
+│  COCO        │─────┘
+│  (Safe imgs) │
+└──────────────┘
+
+        │
+        ▼
+┌─────────────────┐
+│  Preprocessing  │
+│  - Resize 224²  │
+│  - Normalize    │
+│  - Format conv. │
+└─────────────────┘
+        │
+        ▼
+┌─────────────────┐
+│  Data Splitter  │
+│  - Train: 70%   │
+│  - Val:   15%   │
+│  - Test:  15%   │
+└─────────────────┘
+        │
+        ├──────────┬──────────┐
+        ▼          ▼          ▼
+   ┌────────┐ ┌────────┐ ┌────────┐
+   │ Train  │ │  Val   │ │  Test  │
+   │  Set   │ │  Set   │ │  Set   │
+   └────────┘ └────────┘ └────────┘
+
+
+PHASE 2 : ENTRAÎNEMENT
+=======================
+
+┌────────────┐
+│ Train Set  │
+└────────────┘
+      │
+      ▼
+┌──────────────────┐
+│ Data Augmentation│
+│ - Rotation ±20°  │
+│ - Horizontal flip│
+│ - Zoom 0.8-1.2   │
+│ - Brightness ±20%│
+└──────────────────┘
+      │
+      ├─────────────────────────────────┐
+      │                                 │
+      ▼                                 ▼
+┌────────────┐                  ┌──────────────────┐
+│  Standard  │                  │   Adversarial    │
+│  Training  │                  │    Generator     │
+│  Batch     │                  │  - FGSM ε=0.03   │
+└────────────┘                  │  - PGD steps=10  │
+      │                         └──────────────────┘
+      │                                 │
+      │                                 ▼
+      │                         ┌──────────────────┐
+      │                         │  Adversarial     │
+      │                         │  Training Batch  │
+      │                         └──────────────────┘
+      │                                 │
+      └─────────────┬───────────────────┘
+                    ▼
+            ┌───────────────┐
+            │  MobileNetV2  │
+            │     Model     │
+            │               │
+            │  Forward pass │
+            │  Loss calc.   │
+            │  Backprop     │
+            │  Update weights│
+            └───────────────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │  Validation   │
+            │  on Val Set   │
+            └───────────────┘
+                    │
+                    ▼
+            ┌───────────────┐      Non
+            │ Best model?   │─────────┐
+            └───────────────┘         │
+                    │ Oui             │
+                    ▼                 │
+            ┌───────────────┐         │
+            │ Save Checkpoint│        │
+            └───────────────┘         │
+                    │                 │
+                    └─────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  Convergence? │
+                    └───────────────┘
+                       Oui │   │ Non
+                           │   └──────┐
+                           ▼          │
+                    ┌───────────────┐ │
+                    │  Final Model  │ │
+                    └───────────────┘ │
+                                      │
+                    Loop back ────────┘
+
+
+PHASE 3 : ÉVALUATION
+====================
+
+┌──────────────┐
+│ Final Model  │
+└──────────────┘
+      │
+      ├──────────────────┬────────────────────┐
+      │                  │                    │
+      ▼                  ▼                    ▼
+┌─────────────┐  ┌──────────────┐  ┌──────────────────┐
+│ Evaluation  │  │  Attack Gen. │  │  Attack Gen.     │
+│ on Clean    │  │  FGSM        │  │  PGD             │
+│ Test Set    │  │  ε ∈ [0,0.3] │  │  ε ∈ [0,0.1]     │
+└─────────────┘  └──────────────┘  └──────────────────┘
+      │                  │                    │
+      ▼                  ▼                    ▼
+┌─────────────┐  ┌──────────────┐  ┌──────────────────┐
+│ Clean       │  │ FGSM         │  │ PGD              │
+│ Accuracy    │  │ Adversarial  │  │ Adversarial      │
+│             │  │ Test Set     │  │ Test Set         │
+└─────────────┘  └──────────────┘  └──────────────────┘
+                       │                    │
+                       ▼                    ▼
+                 ┌──────────────┐  ┌──────────────────┐
+                 │ Evaluation   │  │ Evaluation       │
+                 │ on FGSM      │  │ on PGD           │
+                 └──────────────┘  └──────────────────┘
+                       │                    │
+      ┌────────────────┴────────────────────┘
+      │
+      ▼
+┌──────────────────────────┐
+│  Robustness Comparison   │
+│  - Baseline vs Secured   │
+│  - Accuracy curves       │
+│  - Confusion matrices    │
+└──────────────────────────┘
+      │
+      ▼
+┌──────────────────────────┐
+│  Generate Reports        │
+│  - Metrics tables        │
+│  - Visualizations        │
+│  - Performance analysis  │
+└──────────────────────────┘
+
+
+PHASE 4 : DÉPLOIEMENT ET PRÉDICTION
+====================================
+
+┌──────────────────┐
+│  Final Secured   │
+│  Model (.h5)     │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Docker Container │
+│ - Model loaded   │
+│ - API running    │
+│ - Port 8000      │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Web Interface   │
+│  - User uploads  │
+│    image         │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  HTTP POST       │
+│  /predict        │
+│  (image data)    │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  API Server      │
+│  - Receive image │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Preprocessing   │
+│  - Resize 224²   │
+│  - Normalize     │
+│  - Format tensor │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Model Inference │
+│  - Forward pass  │
+│  - Get prediction│
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Postprocessing  │
+│  - Get class     │
+│  - Confidence    │
+│  - Format JSON   │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  HTTP Response   │
+│  {               │
+│   "class": "gun",│
+│   "conf": 0.95,  │
+│   "safe": false  │
+│  }               │
+└──────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Display Result  │
+│  - Show class    │
+│  - Show confidence│
+│  - Visual feedback│
+└──────────────────┘
+
+
+FORMAT DES DONNÉES À CHAQUE ÉTAPE :
+====================================
+
+1. Données brutes:
+   - Images JPEG/PNG de tailles variables
+   - Labels: "weapon" ou "safe"
+
+2. Après preprocessing:
+   - Tensors NumPy (224, 224, 3)
+   - Valeurs normalisées [0, 1]
+   - Dtype: float32
+
+3. Pendant entraînement:
+   - Batches: (batch_size, 224, 224, 3)
+   - Labels one-hot: (batch_size, 2)
+
+4. Exemples adverses:
+   - Même format que données propres
+   - Perturbations bornées par ε
+
+5. Prédictions API:
+   - Input: Base64 encoded image ou file upload
+   - Output: JSON {"class": str, "confidence": float}
+
+NOTES POUR LE DIAGRAMME FINAL :
+================================
+1. Utiliser des formes différentes:
+   - Rectangles arrondis pour les processus
+   - Cylindres pour les datasets
+   - Parallélogrammes pour les I/O
+   - Losanges pour les décisions
+
+2. Couleurs suggérées:
+   - Bleu: données
+   - Vert: processus
+   - Rouge: attaques
+   - Orange: évaluation
+   - Violet: déploiement
+
+3. Ajouter des annotations avec:
+   - Formats de données
+   - Tailles des tensors
+   - Nombre d'exemples

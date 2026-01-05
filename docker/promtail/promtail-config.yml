@@ -1,0 +1,95 @@
+# Configuration Promtail
+# Agent de collecte de logs pour Loki
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# Position des logs (pour reprendre la ou on s'est arrete)
+positions:
+  filename: /tmp/positions.yaml
+
+# Client Loki
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+# Configuration de collecte des logs
+scrape_configs:
+  # ============================================================
+  # LOGS D'AUDIT (Format JSONL)
+  # ============================================================
+  - job_name: audit_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: audit
+          log_type: audit
+          __path__: /logs/audit/*.jsonl
+
+    # Pipeline de traitement pour logs JSON
+    pipeline_stages:
+      - json:
+          expressions:
+            audit_id: audit_id
+            timestamp: timestamp
+            event_type: event_type
+            severity: severity
+            user_id: user.user_id_hash
+            client_ip: user.client_ip
+            endpoint: api.endpoint
+            prediction: prediction.result
+            confidence: prediction.confidence
+
+      - labels:
+          event_type:
+          severity:
+          prediction:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  # ============================================================
+  # LOGS SYSTEME
+  # ============================================================
+  - job_name: system_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          log_type: system
+          __path__: /logs/audit/system.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+ \S+) - (?P<name>\S+) - (?P<level>\S+) - (?P<message>.*)$'
+
+      - labels:
+          level:
+
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05,000'
+
+  # ============================================================
+  # LOGS API (si logs supplementaires)
+  # ============================================================
+  - job_name: api_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: api
+          log_type: application
+          __path__: /logs/*.log
+
+    pipeline_stages:
+      - match:
+          selector: '{job="api"}'
+          stages:
+            - regex:
+                expression: '.*(?P<level>INFO|WARNING|ERROR|CRITICAL).*'
+            - labels:
+                level:

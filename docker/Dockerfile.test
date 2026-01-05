@@ -1,0 +1,27 @@
+# Dockerfile pour exécuter les tests
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Installation des outils de compilation nécessaires pour cryptography et autres packages
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installation des dépendances de test
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --upgrade pip && \
+    pip install --default-timeout=1000 --retries 5 \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt && \
+    pip install --default-timeout=1000 --retries 5 pytest pytest-cov pytest-asyncio
+
+# Copie du code source
+COPY . .
+
+# Exécution des tests
+CMD ["pytest", "tests/", "-v", "--cov=src", "--cov-report=html"]

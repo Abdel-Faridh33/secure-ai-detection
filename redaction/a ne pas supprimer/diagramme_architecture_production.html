@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Production - Système de Détection Sécurisé</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .legend {
+            background: #f9f9f9;
+            border: 2px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .legend ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .legend li {
+            margin: 8px 0;
+        }
+        .zone-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+        .export-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Architecture Production - Système de Détection Sécurisé</h1>
+
+        <div class="mermaid">
+graph TB
+    subgraph Users["UTILISATEURS"]
+        U1[Utilisateur Web]
+        U2[API Client]
+        U3[Admin Dashboard]
+    end
+
+    subgraph Zone4["ZONE 4: SECURISATION PRODUCTION"]
+        N1[Nginx Reverse Proxy<br/>Port 80/443 HTTPS]
+        WAF[Web Application Firewall<br/>Rate Limiting par IP<br/>SQL Injection Detection]
+        JWT[Authentication JWT<br/>Access Token + Refresh<br/>Expiration 15min]
+        RBAC[Role-Based Access Control<br/>admin / agent / guest<br/>Permission Matrix]
+        ANOM[Anomaly Detection<br/>Isolation Forest<br/>Risk Scoring par IP]
+    end
+
+    subgraph APIs["API FASTAPI (2 instances)"]
+        API1[API Baseline<br/>Port 8001<br/>Non-secured Model]
+        API2[API Secured<br/>Port 8002<br/>Adversarial-trained Model]
+    end
+
+    subgraph Models["MODELES PYTORCH"]
+        M1[Baseline Model<br/>97.55% clean acc<br/>50% FGSM acc]
+        M2[Secured Model<br/>93.14% clean acc<br/>68.14% FGSM acc<br/>AES-256-GCM encrypted<br/>RSA-4096 signed]
+    end
+
+    subgraph Zone5["ZONE 5: GOUVERNANCE & AUDIT"]
+        AUDIT[Audit Logger<br/>PostgreSQL Immutable Logs<br/>SHA-256 Hash Chain<br/>User Pseudonymization]
+        PROM[Prometheus Metrics<br/>Requetes/sec, Latence P95<br/>Model Accuracy, Errors<br/>Scrape interval 15s]
+        GRAF[Grafana Dashboards<br/>Real-time Monitoring<br/>Alerting Rules<br/>Email/Slack Notifications]
+        LOGS[Application Logs<br/>Structured JSON<br/>Rotation 7 days<br/>Loki Aggregation]
+    end
+
+    subgraph Storage["STOCKAGE PERSISTANT"]
+        PG[(PostgreSQL 15<br/>Users, Audit Logs<br/>WAF Blocked IPs)]
+        REDIS[(Redis 7<br/>JWT Sessions<br/>Rate Limit Counters<br/>Cache Predictions)]
+    end
+
+    %% Flux utilisateur vers système
+    U1 -->|HTTPS Request| N1
+    U2 -->|API Call| N1
+    U3 -->|Admin Request| N1
+
+    %% Zone 4 : Sécurisation
+    N1 -->|Check Rate Limit| WAF
+    WAF -->|Validate Request| JWT
+    JWT -->|Verify Token| RBAC
+    RBAC -->|Check Permissions| ANOM
+    ANOM -->|Risk Score < 0.7| N1
+
+    %% Routage vers APIs
+    N1 -->|/predict/baseline| API1
+    N1 -->|/predict/secured| API2
+    N1 -->|/security/*| API2
+
+    %% APIs vers Modèles
+    API1 -->|Load & Inference| M1
+    API2 -->|Decrypt + Load| M2
+
+    %% Zone 5 : Audit & Monitoring
+    API1 -.Log Prediction.-> AUDIT
+    API2 -.Log Prediction.-> AUDIT
+    WAF -.Log Block Event.-> AUDIT
+    JWT -.Log Auth Event.-> AUDIT
+    ANOM -.Log Anomaly.-> AUDIT
+
+    API1 -.Export Metrics.-> PROM
+    API2 -.Export Metrics.-> PROM
+    PROM -->|Query & Visualize| GRAF
+
+    API1 -.Write Logs.-> LOGS
+    API2 -.Write Logs.-> LOGS
+
+    %% Stockage
+    AUDIT -->|Write Immutable| PG
+    JWT -->|Store Sessions| REDIS
+    WAF -->|Store Counters| REDIS
+    ANOM -->|Cache Risk Scores| REDIS
+
+    %% Retour vers utilisateur
+    M1 -.Prediction Result.-> API1
+    M2 -.Prediction Result.-> API2
+    API1 -->|JSON Response| N1
+    API2 -->|JSON Response| N1
+    N1 -->|HTTPS Response| U1
+
+    %% Styles
+    classDef userClass fill:#e3f2fd,stroke:#2196F3,stroke-width:2px
+    classDef zone4Class fill:#fff3e0,stroke:#FF9800,stroke-width:3px
+    classDef apiClass fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
+    classDef modelClass fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px
+    classDef zone5Class fill:#fce4ec,stroke:#E91E63,stroke-width:3px
+    classDef storageClass fill:#e0f2f1,stroke:#009688,stroke-width:2px
+
+    class U1,U2,U3 userClass
+    class N1,WAF,JWT,RBAC,ANOM zone4Class
+    class API1,API2 apiClass
+    class M1,M2 modelClass
+    class AUDIT,PROM,GRAF,LOGS zone5Class
+    class PG,REDIS storageClass
+        </div>
+
+        <div class="legend">
+            <h3>Légende des Composants</h3>
+            <ul>
+                <li><span class="zone-box" style="background:#e3f2fd;border:2px solid #2196F3;"></span><strong>Utilisateurs (Bleu):</strong> Interface web, clients API, dashboard administratif</li>
+                <li><span class="zone-box" style="background:#fff3e0;border:2px solid #FF9800;"></span><strong>Zone 4 - Sécurisation Production (Orange):</strong>
+                    <ul>
+                        <li><strong>WAF:</strong> Rate limiting 100 req/min par IP, détection SQL injection/XSS</li>
+                        <li><strong>JWT:</strong> Access token (15min) + Refresh token (7j), algorithme RS256</li>
+                        <li><strong>RBAC:</strong> 3 rôles (admin, agent, guest), matrice de permissions</li>
+                        <li><strong>Anomaly Detection:</strong> Isolation Forest sur features requête, seuil risque 0.7</li>
+                    </ul>
+                </li>
+                <li><span class="zone-box" style="background:#e8f5e9;border:2px solid #4CAF50;"></span><strong>APIs FastAPI (Vert):</strong> 2 instances dédiées (baseline + secured), asynchrone Uvicorn</li>
+                <li><span class="zone-box" style="background:#f3e5f5;border:2px solid #9C27B0;"></span><strong>Modèles PyTorch (Violet):</strong> Baseline non-sécurisé vs Secured (adversarial training + chiffrement AES-256-GCM)</li>
+                <li><span class="zone-box" style="background:#fce4ec;border:2px solid #E91E63;"></span><strong>Zone 5 - Gouvernance & Audit (Rose):</strong>
+                    <ul>
+                        <li><strong>Audit Logger:</strong> Logs immuables PostgreSQL, hash chain SHA-256, pseudonymisation RGPD</li>
+                        <li><strong>Prometheus:</strong> Métriques temps réel (requêtes/sec, latence, accuracy), scrape 15s</li>
+                        <li><strong>Grafana:</strong> 5 dashboards (Overview, Security, Models, Anomalies, Audit), alerting</li>
+                        <li><strong>Application Logs:</strong> JSON structuré, rotation 7j, agrégation Loki optionnelle</li>
+                    </ul>
+                </li>
+                <li><span class="zone-box" style="background:#e0f2f1;border:2px solid #009688;"></span><strong>Stockage Persistant (Turquoise):</strong> PostgreSQL (users, audit, WAF), Redis (sessions JWT, rate limiting, cache)</li>
+            </ul>
+        </div>
+
+        <div class="legend">
+            <h3>Flux de Données Principal</h3>
+            <ol>
+                <li><strong>Requête utilisateur</strong> → Nginx HTTPS (port 443)</li>
+                <li><strong>Zone 4 - Sécurisation:</strong>
+                    <ul>
+                        <li>WAF vérifie rate limit (100 req/min) et patterns malveillants</li>
+                        <li>JWT valide le token (signature RS256, expiration)</li>
+                        <li>RBAC vérifie les permissions selon le rôle</li>
+                        <li>Anomaly Detection calcule risk score (seuil 0.7)</li>
+                    </ul>
+                </li>
+                <li><strong>Routage</strong> → API Baseline (8001) ou Secured (8002) selon endpoint</li>
+                <li><strong>Inférence</strong> → Modèle PyTorch (déchiffrement si secured)</li>
+                <li><strong>Zone 5 - Audit:</strong>
+                    <ul>
+                        <li>Log immuable PostgreSQL (timestamp, IP, user_id, prediction, confidence, duration)</li>
+                        <li>Métriques Prometheus (compteurs, histogrammes, gauges)</li>
+                        <li>Logs applicatifs JSON (rotation 7j)</li>
+                    </ul>
+                </li>
+                <li><strong>Réponse JSON</strong> → Utilisateur via Nginx</li>
+            </ol>
+        </div>
+
+        <div class="legend">
+            <h3>Configurations de Déploiement</h3>
+            <table style="width:100%; border-collapse: collapse;">
+                <tr style="border-bottom: 2px solid #333;">
+                    <th style="text-align:left; padding:8px;">Configuration</th>
+                    <th style="text-align:center; padding:8px;">Services</th>
+                    <th style="text-align:left; padding:8px;">Cas d'usage</th>
+                </tr>
+                <tr>
+                    <td style="padding:8px;"><strong>MINIMAL</strong></td>
+                    <td style="text-align:center; padding:8px;">5</td>
+                    <td style="padding:8px;">APIs + Nginx + Prometheus + Grafana (pas de PostgreSQL/Redis, audit sur disque)</td>
+                </tr>
+                <tr style="background:#f5f5f5;">
+                    <td style="padding:8px;"><strong>STANDARD</strong></td>
+                    <td style="text-align:center; padding:8px;">9</td>
+                    <td style="padding:8px;">+ PostgreSQL + Redis (audit persistant, WAF avec rate limiting Redis)</td>
+                </tr>
+                <tr>
+                    <td style="padding:8px;"><strong>COMPLETE</strong></td>
+                    <td style="text-align:center; padding:8px;">11</td>
+                    <td style="padding:8px;">+ Loki + Promtail + AlertManager (observabilité complète, alerting 24/7)</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="export-buttons">
+            <button onclick="exportAsSVG()">Télécharger SVG</button>
+            <button onclick="exportAsPNG()">Télécharger PNG (Haute Résolution)</button>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        function exportAsSVG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'architecture_production_secured.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Erreur lors de l\'export SVG: ' + error.message);
+            }
+        }
+
+        function exportAsPNG() {
+            try {
+                const svg = document.querySelector('.mermaid svg');
+                if (!svg) {
+                    alert('Erreur: SVG non trouvé. Attendez que le diagramme soit chargé.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+
+                img.onload = function() {
+                    // Haute résolution pour LaTeX (3x)
+                    canvas.width = img.width * 3;
+                    canvas.height = img.height * 3;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'architecture_production_secured.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            } catch (error) {
+                alert('Erreur lors de l\'export PNG: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

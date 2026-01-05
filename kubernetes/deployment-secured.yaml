@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-secured
+  labels:
+    app: detection-secured
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: detection-secured
+  template:
+    metadata:
+      labels:
+        app: detection-secured
+    spec:
+      containers:
+      - name: model-secured
+        image: secure-ai-detection:secured
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+          requests:
+            memory: "2Gi"
+            cpu: "1"

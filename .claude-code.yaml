@@ -1,0 +1,40 @@
+# .claude-code.yaml
+project:
+  name: secure-ai-detection
+  description: "Sécurisation modèles IA - Détection objets dangereux"
+  
+context:
+  always_include:
+    - PROJECT_CONTEXT.md
+    - models/utils/model_loader.py
+    - requirements.txt
+    
+  module_specific:
+    attacks: 
+      - src/attacks/adversarial/fgsm.py
+    defenses:
+      - src/defenses/training/adversarial_training.py
+    experiments:
+      - src/experiments/baseline/train_baseline.py
+
+style:
+  language: python
+  docstring: google
+  typing: always
+  max_line_length: 88
+  
+testing:
+  framework: pytest
+  min_coverage: 70
+  
+priorities:
+  high:
+    - src/experiments/baseline/train_baseline.py
+    - src/attacks/adversarial/fgsm.py
+    - src/defenses/training/adversarial_training.py
+    - src/evaluation/comparison/baseline_vs_secured.py
+  medium:
+    - src/attacks/adversarial/pgd.py
+    - src/defenses/training/differential_privacy.py
+  low:
+    - src/api/endpoints/*.py

@@ -1,0 +1,126 @@
+# Regles d'alertes Prometheus
+# Systeme d'alertes intelligent pour la detection d'incidents
+
+groups:
+  # ============================================================
+  # ALERTES API - Disponibilite et Performance
+  # ============================================================
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # Alerte si l'API est down
+      - alert: APIDown
+        expr: up{job="secure-detection-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API de detection est DOWN"
+          description: "L'API n'a pas repondu depuis plus d'1 minute"
+
+      # Alerte si trop d'erreurs 5xx
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Taux d'erreur eleve (5xx)"
+          description: "Plus de 5% des requetes retournent des erreurs serveur"
+
+      # Alerte si latence trop elevee
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Latence API elevee"
+          description: "Le 95e percentile de latence depasse 2 secondes"
+
+  # ============================================================
+  # ALERTES MODELE IA - Detection d'anomalies
+  # ============================================================
+  - name: ai_model_alerts
+    interval: 30s
+    rules:
+      # Alerte si la precision du modele chute
+      - alert: ModelAccuracyDrop
+        expr: ai_model_accuracy < 0.75
+        for: 5m
+        labels:
+          severity: critical
+          component: ai_model
+        annotations:
+          summary: "Precision du modele en baisse"
+          description: "La precision du modele {{ $labels.model_type }} est inferieure a 75%"
+
+      # Alerte si le temps de traitement est anormal
+      - alert: ModelProcessingSlow
+        expr: histogram_quantile(0.95, rate(ai_model_processing_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          component: ai_model
+        annotations:
+          summary: "Temps de traitement du modele eleve"
+          description: "Le modele {{ $labels.model_type }} prend plus de 5 secondes"
+
+      # Alerte si trop de predictions dangereuses
+      - alert: HighDangerousRate
+        expr: rate(ai_model_predictions_total{prediction="dangerous"}[10m]) / rate(ai_model_predictions_total[10m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: ai_model
+        annotations:
+          summary: "Taux de predictions dangereuses eleve"
+          description: "Plus de 50% des predictions sont classees comme dangereuses"
+
+  # ============================================================
+  # ALERTES SECURITE - Attaques et anomalies
+  # ============================================================
+  - name: security_alerts
+    interval: 15s
+    rules:
+      # Alerte si trop de requetes (DDoS potentiel)
+      - alert: PotentialDDoS
+        expr: rate(http_requests_total[1m]) > 100
+        for: 2m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Attaque DDoS potentielle detectee"
+          description: "Plus de 100 requetes/seconde detectees"
+
+      # Alerte si trop de requetes bloquees (rate limiting)
+      - alert: HighRateLimitBlocking
+        expr: rate(http_requests_total{status="429"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Nombreuses requetes bloquees par rate limiting"
+          description: "Activite suspecte detectee - beaucoup de requetes bloquees"
+
+  # ============================================================
+  # ALERTES SYSTEME - Ressources
+  # ============================================================
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Alerte si Prometheus n'arrive pas a scraper
+      - alert: PrometheusScrapeError
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Erreur de scraping Prometheus"
+          description: "Prometheus ne peut pas scraper {{ $labels.job }}"

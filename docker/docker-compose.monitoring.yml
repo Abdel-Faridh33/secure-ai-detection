@@ -1,0 +1,134 @@
+version: '3.8'
+
+# Stack de Monitoring Complete - Zone 5 : Gouvernance et Surveillance
+#
+# Services inclus :
+# - Prometheus : Collecte de metriques (deja configure dans l'API)
+# - Grafana : Dashboards de visualisation
+# - Loki : Aggregation de logs (leger, alternative a ELK)
+# - Promtail : Agent de collecte de logs pour Loki
+# - AlertManager : Systeme d'alertes intelligent
+#
+# Demarrage : docker-compose -f docker-compose.monitoring.yml up -d
+# Arret : docker-compose -f docker-compose.monitoring.yml down
+
+services:
+  # ============================================================
+  # PROMETHEUS - Collecte de metriques
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: secure-detection-prometheus1
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring
+    depends_on:
+      - alertmanager
+
+  # ============================================================
+  # ALERTMANAGER - Systeme d'alertes
+  # ============================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: secure-detection-alertmanager1
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring
+
+  # ============================================================
+  # GRAFANA - Dashboards de visualisation
+  # ============================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: secure-detection-grafana
+    restart: unless-stopped1
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - loki
+
+  # ============================================================
+  # LOKI - Aggregation de logs (alternative legere a ELK)
+  # ============================================================
+  loki:
+    image: grafana/loki:latest
+    container_name: secure-detection-loki1
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
+  # ============================================================
+  # PROMTAIL - Agent de collecte de logs pour Loki
+  # ============================================================
+  promtail:
+    image: grafana/promtail:latest
+    container_name: secure-detection-promtail1
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+      - ../logs:/logs  # Monte le dossier logs du projet
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+
+# ============================================================
+# VOLUMES PERSISTANTS
+# ============================================================
+volumes:
+  prometheus-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+
+# ============================================================
+# RESEAU
+# ============================================================
+networks:
+  monitoring:
+    driver: bridge

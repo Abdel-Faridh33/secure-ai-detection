@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Technique à 5 Zones - Diagramme Réseau</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .architecture-container {
+            width: 1920px;
+            height: 1080px;
+            background: white;
+            position: relative;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.15);
+            border: 3px solid #2c3e50;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px 40px;
+            border-bottom: 4px solid #3498db;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            font-size: 18px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 14px;
+        }
+
+        .header-right div {
+            margin-bottom: 5px;
+        }
+
+        /* Main Canvas */
+        .canvas {
+            padding: 30px;
+            height: calc(100% - 100px);
+            position: relative;
+            background:
+                linear-gradient(90deg, #ecf0f1 1px, transparent 1px),
+                linear-gradient(0deg, #ecf0f1 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* Zone Block */
+        .zone-block {
+            position: absolute;
+            background: white;
+            border: 3px solid;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .zone-header {
+            padding: 15px 20px;
+            color: white;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 3px solid rgba(0,0,0,0.1);
+        }
+
+        .zone-number {
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        .zone-title {
+            flex: 1;
+        }
+
+        .zone-title h3 {
+            font-size: 22px;
+            margin-bottom: 2px;
+        }
+
+        .zone-title p {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .zone-body {
+            padding: 18px 20px;
+            background: #fafafa;
+        }
+
+        .zone-function {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid;
+            margin-bottom: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .zone-mechanisms {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mechanism {
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid #ecf0f1;
+            transition: all 0.2s;
+        }
+
+        .mechanism:hover {
+            border-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .mechanism-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .mechanism-text {
+            flex: 1;
+        }
+
+        .mechanism-name {
+            font-weight: 700;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .mechanism-tech {
+            color: #7f8c8d;
+            font-size: 11px;
+        }
+
+        /* Zone Colors */
+        .zone1 {
+            border-color: #3498db;
+        }
+        .zone1 .zone-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        .zone1 .zone-function {
+            border-color: #3498db;
+        }
+
+        .zone2 {
+            border-color: #27ae60;
+        }
+        .zone2 .zone-header {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+        .zone2 .zone-function {
+            border-color: #27ae60;
+        }
+
+        .zone3 {
+            border-color: #f39c12;
+        }
+        .zone3 .zone-header {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+        .zone3 .zone-function {
+            border-color: #f39c12;
+        }
+
+        .zone4 {
+            border-color: #e74c3c;
+        }
+        .zone4 .zone-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .zone4 .zone-function {
+            border-color: #e74c3c;
+        }
+
+        .zone5 {
+            border-color: #9b59b6;
+        }
+        .zone5 .zone-header {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+        .zone5 .zone-function {
+            border-color: #9b59b6;
+        }
+
+        /* Data Flow Arrows */
+        .flow-arrow {
+            position: absolute;
+            z-index: 100;
+        }
+
+        .arrow-line {
+            position: absolute;
+            background: #34495e;
+            transform-origin: left center;
+        }
+
+        .arrow-head {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .arrow-label {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .arrow-label::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #2c3e50;
+        }
+
+        /* Validation Gates */
+        .validation-gate {
+            position: absolute;
+            background: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+            z-index: 150;
+        }
+
+        .validation-gate::before {
+            content: '✓';
+            font-size: 16px;
+        }
+
+        /* Feedback Loop */
+        .feedback-loop {
+            position: absolute;
+            left: 20px;
+            top: 180px;
+            width: 50px;
+            height: calc(100% - 240px);
+            border: 4px dashed #e74c3c;
+            border-right: none;
+            border-radius: 25px 0 0 25px;
+            z-index: 50;
+        }
+
+        .feedback-label {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            background: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 13px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            width: 320px;
+        }
+
+        .legend-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #2c3e50;
+        }
+
+        .legend-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px solid #ecf0f1;
+        }
+
+        .legend-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+
+        .symbol-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .symbol {
+            width: 30px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow-symbol {
+            width: 30px;
+            height: 3px;
+            background: #34495e;
+            position: relative;
+        }
+
+        .arrow-symbol::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid #34495e;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .dashed-symbol {
+            width: 30px;
+            height: 3px;
+            border-top: 3px dashed #e74c3c;
+        }
+
+        .gate-symbol {
+            width: 24px;
+            height: 16px;
+            background: #27ae60;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+        }
+
+        /* Stats Box */
+        .stats-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            border: 3px solid #2c3e50;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            width: 280px;
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #27ae60;
+        }
+
+        .stat-value.warning {
+            color: #e74c3c;
+        }
+
+        /* Responsive adjustments */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .architecture-container {
+                box-shadow: none;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="architecture-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Architecture de Sécurisation à 5 Zones</h1>
+                <p>Défense en Profondeur - Diagramme Technique Détaillé</p>
+            </div>
+            <div class="header-right">
+                <div><strong>Projet:</strong> Sécurisation IA - Maintien de l'Ordre</div>
+                <div><strong>Version:</strong> 1.0</div>
+                <div><strong>Date:</strong> 2025</div>
+            </div>
+        </div>
+
+        <!-- Main Canvas -->
+        <div class="canvas">
+            <!-- Zone 1: Data Security -->
+            <div class="zone-block zone1" style="left: 100px; top: 40px; width: 340px;">
+                <div class="zone-header">
+                    <div class="zone-number">1</div>
+                    <div class="zone-title">
+                        <h3>DATA SECURITY</h3>
+                        <p>Sécurité des Données</p>
+                    </div>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-function">
+                        <strong>Fonction:</strong> Garantir l'intégrité, la confidentialité et la qualité des données d'entraînement avant leur utilisation.
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔐</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Chiffrement AES-256</span>
+                                <span class="mechanism-tech">cryptography.fernet</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">✓</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Vérification intégrité</span>
+                                <span class="mechanism-tech">SHA-256 hashing</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔍</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Détection poisoning</span>
+                                <span class="mechanism-tech">Isolation Forest (sklearn)</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">📊</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Tests statistiques</span>
+                                <span class="mechanism-tech">Chi-Square, KS-test, Z-score</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔒</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Anonymisation RGPD</span>
+                                <span class="mechanism-tech">Suppression EXIF</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 2: Training Security -->
+            <div class="zone-block zone2" style="left: 520px; top: 40px; width: 340px;">
+                <div class="zone-header">
+                    <div class="zone-number">2</div>
+                    <div class="zone-title">
+                        <h3>TRAINING SECURITY</h3>
+                        <p>Entraînement Robuste</p>
+                    </div>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-function">
+                        <strong>Fonction:</strong> Entraîner un modèle robuste aux attaques adversariales tout en garantissant la confidentialité des données (Differential Privacy).
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism">
+                            <div class="mechanism-icon">⚔️</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Adversarial Training</span>
+                                <span class="mechanism-tech">TRADES (β=6.0)</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔐</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Differential Privacy</span>
+                                <span class="mechanism-tech">Opacus (ε,δ)-DP</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">📉</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Gradient Clipping</span>
+                                <span class="mechanism-tech">||∇|| ≤ 0.5</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🎯</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">PGD Attack</span>
+                                <span class="mechanism-tech">ε=0.031, 10 iterations</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🐳</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Sandboxing Docker</span>
+                                <span class="mechanism-tech">Isolated environment</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 3: Validation & Testing -->
+            <div class="zone-block zone3" style="left: 940px; top: 40px; width: 340px;">
+                <div class="zone-header">
+                    <div class="zone-number">3</div>
+                    <div class="zone-title">
+                        <h3>VALIDATION & TESTING</h3>
+                        <p>Certification Robustesse</p>
+                    </div>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-function">
+                        <strong>Fonction:</strong> Certifier la robustesse, l'équité et la performance du modèle avant déploiement via une batterie de tests adversariaux.
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism">
+                            <div class="mechanism-icon">⚡</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">FGSM Attack</span>
+                                <span class="mechanism-tech">ε=0.031 (8/255)</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔥</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">PGD Attack</span>
+                                <span class="mechanism-tech">ε=0.031, α=0.007, 10 iter</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🎯</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">AutoAttack</span>
+                                <span class="mechanism-tech">Gold standard</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">⚖️</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Fairness Audit</span>
+                                <span class="mechanism-tech">FPR/FNR disparity ≤5%</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">✅</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Certification Grade</span>
+                                <span class="mechanism-tech">A+ / A / B / C / F</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 4: Production Deployment -->
+            <div class="zone-block zone4" style="left: 1360px; top: 40px; width: 340px;">
+                <div class="zone-header">
+                    <div class="zone-number">4</div>
+                    <div class="zone-title">
+                        <h3>PRODUCTION DEPLOYMENT</h3>
+                        <p>Déploiement Sécurisé</p>
+                    </div>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-function">
+                        <strong>Fonction:</strong> Déployer le modèle en production avec défenses actives contre les attaques en temps réel et haute disponibilité.
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🛡️</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Web App Firewall</span>
+                                <span class="mechanism-tech">Nginx + ModSecurity</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔑</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Auth JWT</span>
+                                <span class="mechanism-tech">Token-based</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">⏱️</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Rate Limiting</span>
+                                <span class="mechanism-tech">100 req/min (Redis)</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔍</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Adversarial Detector</span>
+                                <span class="mechanism-tech">Real-time detection</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🐳</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Docker Container</span>
+                                <span class="mechanism-tech">FastAPI + Uvicorn</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 5: Governance & Monitoring -->
+            <div class="zone-block zone5" style="left: 1360px; top: 520px; width: 340px;">
+                <div class="zone-header">
+                    <div class="zone-number">5</div>
+                    <div class="zone-title">
+                        <h3>GOVERNANCE & MONITORING</h3>
+                        <p>Surveillance Continue</p>
+                    </div>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-function">
+                        <strong>Fonction:</strong> Surveiller le système en production, détecter les dérives, auditer les opérations et maintenir la conformité réglementaire.
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism">
+                            <div class="mechanism-icon">📊</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Monitoring Prometheus</span>
+                                <span class="mechanism-tech">Métriques temps réel</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">📈</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Dashboard Grafana</span>
+                                <span class="mechanism-tech">Visualisation + Alerting</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">📝</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Audit Logging</span>
+                                <span class="mechanism-tech">PostgreSQL immutable</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">🔔</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">Alertmanager</span>
+                                <span class="mechanism-tech">Email/SMS notifications</span>
+                            </div>
+                        </div>
+                        <div class="mechanism">
+                            <div class="mechanism-icon">⚖️</div>
+                            <div class="mechanism-text">
+                                <span class="mechanism-name">RGPD Compliance</span>
+                                <span class="mechanism-tech">DPIA + Registre</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Flow Arrows -->
+            <!-- Zone 1 to Zone 2 -->
+            <div class="arrow-line" style="left: 440px; top: 220px; width: 80px; height: 4px;"></div>
+            <div class="arrow-head" style="left: 515px; top: 212px; border-left: 15px solid #34495e; border-top: 8px solid transparent; border-bottom: 8px solid transparent;"></div>
+            <div class="arrow-label" style="left: 445px; top: 180px;">Données Validées<br>Quality ≥70%</div>
+
+            <!-- Zone 2 to Zone 3 -->
+            <div class="arrow-line" style="left: 860px; top: 220px; width: 80px; height: 4px;"></div>
+            <div class="arrow-head" style="left: 935px; top: 212px; border-left: 15px solid #34495e; border-top: 8px solid transparent; border-bottom: 8px solid transparent;"></div>
+            <div class="arrow-label" style="left: 865px; top: 180px;">Modèle Entraîné<br>ResNet50 TRADES</div>
+
+            <!-- Zone 3 to Zone 4 -->
+            <div class="arrow-line" style="left: 1280px; top: 220px; width: 80px; height: 4px;"></div>
+            <div class="arrow-head" style="left: 1355px; top: 212px; border-left: 15px solid #34495e; border-top: 8px solid transparent; border-bottom: 8px solid transparent;"></div>
+            <div class="arrow-label" style="left: 1285px; top: 180px;">Certifié Grade A+<br>PGD Rob ≥80%</div>
+
+            <!-- Zone 4 to Zone 5 -->
+            <div class="arrow-line" style="left: 1530px; top: 470px; width: 4px; height: 50px;"></div>
+            <div class="arrow-head" style="left: 1522px; top: 515px; border-top: 15px solid #34495e; border-left: 8px solid transparent; border-right: 8px solid transparent;"></div>
+            <div class="arrow-label" style="left: 1420px; top: 480px;">Métriques + Logs<br>Prometheus</div>
+
+            <!-- Feedback Loop -->
+            <div class="feedback-loop"></div>
+            <div class="feedback-label">FEEDBACK & RETRAINING LOOP</div>
+
+            <!-- Validation Gates -->
+            <div class="validation-gate" style="left: 450px; top: 450px;">✓ Gate 1: Data Validated</div>
+            <div class="validation-gate" style="left: 870px; top: 450px;">✓ Gate 2: Model Trained</div>
+            <div class="validation-gate" style="left: 1290px; top: 450px;">✓ Gate 3: Certified</div>
+            <div class="validation-gate" style="left: 1500px; top: 900px;">✓ Gate 4: Production</div>
+
+            <!-- Stats Box -->
+            <div class="stats-box">
+                <div class="stats-title">📈 MÉTRIQUES CLÉS</div>
+                <div class="stat-item">
+                    <span class="stat-label">Robustesse adversariale</span>
+                    <span class="stat-value">+50%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Perte d'accuracy</span>
+                    <span class="stat-value warning">-3%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Latence P95 (CPU)</span>
+                    <span class="stat-value">&lt;200ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Traçabilité</span>
+                    <span class="stat-value">100%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Conformité RGPD</span>
+                    <span class="stat-value">✓ Complète</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Attack Success Rate</span>
+                    <span class="stat-value">53.3% → 20%</span>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-title">🎨 LÉGENDE</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #3498db, #2980b9);"></div>
+                        <span>Zone 1: Data</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #27ae60, #229954);"></div>
+                        <span>Zone 2: Training</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #f39c12, #e67e22);"></div>
+                        <span>Zone 3: Validation</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #e74c3c, #c0392b);"></div>
+                        <span>Zone 4: Production</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);"></div>
+                        <span>Zone 5: Governance</span>
+                    </div>
+                </div>
+
+                <div class="legend-section">
+                    <div class="legend-section-title">SYMBOLES</div>
+                    <div class="symbol-item">
+                        <div class="symbol"><div class="arrow-symbol"></div></div>
+                        <span>Flux de données principal</span>
+                    </div>
+                    <div class="symbol-item">
+                        <div class="symbol"><div class="dashed-symbol"></div></div>
+                        <span>Boucle de feedback</span>
+                    </div>
+                    <div class="symbol-item">
+                        <div class="symbol"><div class="gate-symbol">✓</div></div>
+                        <span>Validation gate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Print shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+
+        // Hover effects for mechanisms
+        document.querySelectorAll('.mechanism').forEach(mech => {
+            mech.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateX(8px) scale(1.02)';
+            });
+            mech.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateX(0) scale(1)';
+            });
+        });
+
+        console.log('%c🏗️ Architecture Technique à 5 Zones', 'color: #3498db; font-size: 20px; font-weight: bold;');
+        console.log('%cDiagramme réseau professionnel - Prêt pour soutenance', 'color: #2c3e50; font-size: 14px;');
+    </script>
+</body>
+</html>

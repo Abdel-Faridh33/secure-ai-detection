@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramme de Composants du Système</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .diagram-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            min-height: 600px;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        .instructions code {
+            background-color: #263238;
+            color: #aed581;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1976D2;
+        }
+        .export-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .platform-info {
+            background-color: #fff3e0;
+            border-left: 4px solid #FF9800;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Diagramme de Composants du Système</h1>
+
+    <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+    subgraph DATA_LAYER["COUCHE DE DONNÉES"]
+        DataLoader["DataLoader<br/>-----<br/>+ load()<br/>+ preprocess()<br/>+ split()"]
+        DataValidator["DataValidator<br/>-----<br/>+ validate()<br/>+ check_size()<br/>+ check_label()"]
+        DataAugmentation["DataAugmentation<br/>-----<br/>+ augment()<br/>+ rotate()<br/>+ flip()<br/>+ brightness()"]
+    end
+
+    subgraph TRAINING_LAYER["COUCHE D'ENTRAÎNEMENT"]
+        MobileNetV2["MobileNetV2Model<br/>-----<br/>- base_model<br/>- num_classes: 2<br/>- input_shape: 224×224×3<br/>-----<br/>+ build()<br/>+ compile_model()<br/>+ get_model()"]
+
+        AdversarialGen["AdversarialGenerator<br/>-----<br/>- epsilon: float<br/>-----<br/>+ generate_fgsm()<br/>+ generate_pgd()<br/>+ generate_cw()"]
+
+        TrainingManager["TrainingManager<br/>-----<br/>- model: Model<br/>- epochs: int<br/>- batch_size: int<br/>-----<br/>+ train_standard()<br/>+ train_adversarial()<br/>+ validate()<br/>+ save_model()"]
+
+        MetricsTracker["MetricsTracker<br/>-----<br/>- metrics_history<br/>-----<br/>+ log_metrics()<br/>+ plot_curves()<br/>+ save_report()"]
+    end
+
+    subgraph EVAL_LAYER["COUCHE D'ÉVALUATION"]
+        RobustnessEval["RobustnessEvaluator<br/>-----<br/>- model: Model<br/>- attack_configs<br/>-----<br/>+ test_fgsm()<br/>+ test_pgd()<br/>+ test_cw()<br/>+ compare_models()<br/>+ generate_report()"]
+
+        PerfMonitor["PerformanceMonitor<br/>-----<br/>+ measure_latency()<br/>+ measure_throughput()<br/>+ memory_usage()"]
+    end
+
+    subgraph DEPLOY_LAYER["COUCHE DE DÉPLOIEMENT"]
+        ModelServing["ModelServing<br/>-----<br/>- model: Model<br/>- model_path<br/>-----<br/>+ load_model()<br/>+ predict()<br/>+ preprocess_image()"]
+
+        APIServer["APIServer<br/>-----<br/>- app: FastAPI<br/>- model_serving<br/>-----<br/>+ /predict<br/>+ /evaluate<br/>+ /robustness<br/>+ /metrics"]
+
+        WebInterface["WebInterface<br/>-----<br/>+ upload_image()<br/>+ show_results()<br/>+ visualize()"]
+
+        DockerContainer["DockerContainer<br/>-----<br/>- python: 3.9<br/>- tensorflow: 2.x<br/>-----<br/>+ build()<br/>+ run()"]
+    end
+
+    %% Relations
+    DataLoader -->|fournit données| MobileNetV2
+    DataLoader -->|utilise| DataAugmentation
+    DataValidator -->|valide pour| DataLoader
+
+    MobileNetV2 -->|entraîné par| TrainingManager
+    AdversarialGen -->|génère pour| TrainingManager
+    TrainingManager -->|log vers| MetricsTracker
+
+    MobileNetV2 -->|testé par| RobustnessEval
+    AdversarialGen -->|utilisé par| RobustnessEval
+    RobustnessEval -->|monitoré par| PerfMonitor
+
+    MobileNetV2 -->|chargé par| ModelServing
+    ModelServing -->|sert| APIServer
+    APIServer -->|consommé par| WebInterface
+
+    DockerContainer -.contient.-> APIServer
+    DockerContainer -.contient.-> WebInterface
+    DockerContainer -.contient.-> TrainingManager
+
+    classDef dataClass fill:#fce4ec,stroke:#E91E63,stroke-width:2px
+    classDef trainClass fill:#fff3e0,stroke:#FF9800,stroke-width:2px
+    classDef evalClass fill:#e1f5fe,stroke:#0288D1,stroke-width:2px
+    classDef deployClass fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
+
+    class DataLoader,DataValidator,DataAugmentation dataClass
+    class MobileNetV2,AdversarialGen,TrainingManager,MetricsTracker trainClass
+    class RobustnessEval,PerfMonitor evalClass
+    class ModelServing,APIServer,WebInterface,DockerContainer deployClass
+        </div>
+    </div>
+
+    <div class="export-section">
+        <button onclick="captureAsSVG()">📥 Télécharger en SVG</button>
+        <button onclick="captureAsPNG()">📥 Télécharger en PNG (haute qualité)</button>
+        <button onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+
+    <div class="platform-info">
+        <h3>🎨 Plateformes pour modifier ce diagramme</h3>
+
+        <h4>Option 1 : Draw.io (Recommandé) ✅</h4>
+        <ul>
+            <li><strong>Site :</strong> <a href="https://app.diagrams.net/" target="_blank">app.diagrams.net</a></li>
+            <li><strong>Comment :</strong>
+                <ol>
+                    <li>Ouvrir Draw.io</li>
+                    <li>Créer un nouveau diagramme</li>
+                    <li>Utiliser les formes "UML" dans la bibliothèque gauche</li>
+                    <li>Recréer les composants avec leurs attributs et méthodes</li>
+                </ol>
+            </li>
+        </ul>
+
+        <h4>Option 2 : Modifier le code Mermaid</h4>
+        <ul>
+            <li><strong>Éditeur :</strong> <a href="https://mermaid.live/" target="_blank">mermaid.live</a></li>
+            <li><strong>Comment :</strong> Copier le code de la section <code>&lt;div class="mermaid"&gt;</code> et le modifier en ligne</li>
+        </ul>
+
+        <h4>Option 3 : PlantUML (pour UML strict)</h4>
+        <ul>
+            <li><strong>Site :</strong> <a href="https://www.plantuml.com/plantuml/" target="_blank">plantuml.com</a></li>
+            <li><strong>Comment :</strong> Utiliser la syntaxe PlantUML pour créer un diagramme de classes professionnel</li>
+        </ul>
+    </div>
+
+    <div class="instructions">
+        <h3>📋 Instructions d'export</h3>
+        <ol>
+            <li>Attendez que le diagramme soit complètement chargé (quelques secondes)</li>
+            <li>Cliquez sur "Télécharger en PNG (haute qualité)"</li>
+            <li>Renommez le fichier en <code>diagramme_composants.png</code></li>
+            <li>Placez-le dans <code>figures/</code></li>
+            <li>Décommentez la ligne dans <code>Chapitre_3.1.tex</code></li>
+        </ol>
+
+        <h3>🎨 Légende des couleurs</h3>
+        <ul>
+            <li><span style="background:#fce4ec; padding:2px 8px; border: 1px solid #E91E63;">Rose</span> - Couche de données</li>
+            <li><span style="background:#fff3e0; padding:2px 8px; border: 1px solid #FF9800;">Orange</span> - Couche d'entraînement</li>
+            <li><span style="background:#e1f5fe; padding:2px 8px; border: 1px solid #0288D1;">Bleu clair</span> - Couche d'évaluation</li>
+            <li><span style="background:#e8f5e9; padding:2px 8px; border: 1px solid #4CAF50;">Vert</span> - Couche de déploiement</li>
+        </ul>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        async function captureAsSVG() {
+            try {
+                const svgElement = document.querySelector('.mermaid svg');
+                if (!svgElement) {
+                    alert('Le diagramme n\'est pas encore chargé. Veuillez patienter quelques secondes.');
+                    return;
+                }
+
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'diagramme_composants.svg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                console.log('SVG téléchargé avec succès');
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur: ' + error.message);
+            }
+        }
+
+        async function captureAsPNG() {
+            try {
+                const svgElement = document.querySelector('.mermaid svg');
+                if (!svgElement) {
+                    alert('Le diagramme n\'est pas encore chargé. Veuillez patienter quelques secondes.');
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                const svgString = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+
+                const img = new Image();
+
+                img.onload = function() {
+                    canvas.width = img.width * 2;
+                    canvas.height = img.height * 2;
+
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(function(blob) {
+                        const downloadUrl = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = 'diagramme_composants.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(downloadUrl);
+                        console.log('PNG téléchargé avec succès');
+                    }, 'image/png');
+
+                    URL.revokeObjectURL(url);
+                };
+
+                img.onerror = function() {
+                    alert('Erreur lors du chargement de l\'image');
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

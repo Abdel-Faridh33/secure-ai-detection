@@ -1,0 +1,12 @@
+name: Dependency Check
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily check
+    
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check dependencies
+        run: docker run --rm -v $(pwd):/src python:3.9 pip-audit

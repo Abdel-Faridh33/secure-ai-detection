@@ -1,0 +1,16 @@
+name: Security ML Pipeline
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker images
+        run: docker-compose -f docker/docker-compose.dev.yml build
+      - name: Run security checks
+        run: docker-compose -f docker/docker-compose.dev.yml run --rm test

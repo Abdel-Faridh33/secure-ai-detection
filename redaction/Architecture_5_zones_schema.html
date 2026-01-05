@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture 5 Zones - Schéma Visuel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .slide-container {
+            width: 1920px;
+            height: 1080px;
+            background: white;
+            border-radius: 0;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            color: white;
+            padding: 40px 60px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 28px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Main Content Area */
+        .content {
+            padding: 50px 60px;
+            height: calc(100% - 180px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            flex: 1;
+            position: relative;
+        }
+
+        /* Zone Box */
+        .zone-box {
+            display: grid;
+            grid-template-columns: 80px 1fr 400px;
+            gap: 25px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            position: relative;
+            border-left: 8px solid;
+            transition: all 0.3s ease;
+        }
+
+        .zone-box:hover {
+            transform: translateX(10px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+        }
+
+        /* Zone Number Circle */
+        .zone-number {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Zone Content */
+        .zone-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .zone-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .zone-description {
+            font-size: 18px;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        /* Zone Mechanisms */
+        .zone-mechanisms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .mechanism-badge {
+            background: linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.08));
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* Colors for each zone */
+        .zone1 { border-color: #4287f5; }
+        .zone1 .zone-number { background: linear-gradient(135deg, #4287f5, #2563eb); }
+        .zone1 .mechanism-badge { background: linear-gradient(135deg, #4287f5, #2563eb); color: white; }
+
+        .zone2 { border-color: #4caf50; }
+        .zone2 .zone-number { background: linear-gradient(135deg, #4caf50, #2e7d32); }
+        .zone2 .mechanism-badge { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; }
+
+        .zone3 { border-color: #ffc107; }
+        .zone3 .zone-number { background: linear-gradient(135deg, #ffc107, #f57c00); }
+        .zone3 .mechanism-badge { background: linear-gradient(135deg, #ffc107, #f57c00); color: white; }
+
+        .zone4 { border-color: #ff5722; }
+        .zone4 .zone-number { background: linear-gradient(135deg, #ff5722, #d32f2f); }
+        .zone4 .mechanism-badge { background: linear-gradient(135deg, #ff5722, #d32f2f); color: white; }
+
+        .zone5 { border-color: #9c27b0; }
+        .zone5 .zone-number { background: linear-gradient(135deg, #9c27b0, #6a1b9a); }
+        .zone5 .mechanism-badge { background: linear-gradient(135deg, #9c27b0, #6a1b9a); color: white; }
+
+        /* Arrows between zones */
+        .arrow-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .arrow {
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-top: 35px solid #666;
+            margin: 0 auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.6;
+                transform: translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(5px);
+            }
+        }
+
+        /* Feedback Loop */
+        .feedback-loop {
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: calc(100% - 100px);
+            border: 5px dashed #e74c3c;
+            border-right: none;
+            border-radius: 30px 0 0 30px;
+            opacity: 0.7;
+        }
+
+        .feedback-label {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            background: #e74c3c;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 16px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        /* Validation Gates */
+        .validation-gate {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #27ae60;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .validation-gate::before {
+            content: '✓';
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 60px;
+            background: rgba(255,255,255,0.95);
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border: 3px solid #eee;
+        }
+
+        .legend-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        /* Stats Box */
+        .stats-box {
+            position: absolute;
+            bottom: 30px;
+            left: 60px;
+            background: rgba(255,255,255,0.95);
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border: 3px solid #eee;
+        }
+
+        .stats-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-right: 20px;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #27ae60;
+        }
+
+        .stat-value.negative {
+            color: #e74c3c;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .slide-container {
+                box-shadow: none;
+                width: 100%;
+                height: auto;
+            }
+        }
+
+        /* Responsive for smaller screens */
+        @media (max-width: 1920px) {
+            .slide-container {
+                width: 100%;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .content {
+                height: auto;
+            }
+
+            .zone-box {
+                grid-template-columns: 60px 1fr 300px;
+                padding: 20px 25px;
+            }
+
+            .zone-number {
+                width: 60px;
+                height: 60px;
+                font-size: 32px;
+            }
+
+            .zone-title {
+                font-size: 24px;
+            }
+
+            .zone-description {
+                font-size: 14px;
+            }
+
+            .mechanism-badge {
+                font-size: 12px;
+                padding: 8px 14px;
+            }
+
+            .header h1 {
+                font-size: 40px;
+            }
+
+            .header p {
+                font-size: 20px;
+            }
+
+            .legend, .stats-box {
+                position: static;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ Architecture de Sécurisation à 5 Zones</h1>
+            <p>Défense en Profondeur pour Systèmes d'IA Critiques</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="architecture">
+                <!-- Zone 1: Data Security -->
+                <div class="zone-box zone1">
+                    <div class="zone-number">1</div>
+                    <div class="zone-content">
+                        <div class="zone-title">🔒 Data Security</div>
+                        <div class="zone-description">
+                            Validation et vérification des données · Détection de poisoning · Chiffrement AES-256
+                        </div>
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism-badge">SHA-256</div>
+                        <div class="mechanism-badge">Isolation Forest</div>
+                        <div class="mechanism-badge">Tests Statistiques</div>
+                        <div class="mechanism-badge">RGPD</div>
+                    </div>
+                    <div class="validation-gate">Dataset Validé</div>
+                </div>
+
+                <!-- Arrow 1→2 -->
+                <div class="arrow-container" style="top: 270px;">
+                    <div class="arrow"></div>
+                </div>
+
+                <!-- Zone 2: Training Security -->
+                <div class="zone-box zone2">
+                    <div class="zone-number">2</div>
+                    <div class="zone-content">
+                        <div class="zone-title">🎯 Training Security</div>
+                        <div class="zone-description">
+                            Adversarial Training TRADES · Differential Privacy (ε,δ)-DP · Environnement isolé
+                        </div>
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism-badge">TRADES Loss</div>
+                        <div class="mechanism-badge">Opacus DP</div>
+                        <div class="mechanism-badge">PGD Attack</div>
+                        <div class="mechanism-badge">Docker</div>
+                    </div>
+                    <div class="validation-gate">Modèle Entraîné</div>
+                </div>
+
+                <!-- Arrow 2→3 -->
+                <div class="arrow-container" style="top: 430px;">
+                    <div class="arrow"></div>
+                </div>
+
+                <!-- Zone 3: Validation & Testing -->
+                <div class="zone-box zone3">
+                    <div class="zone-number">3</div>
+                    <div class="zone-content">
+                        <div class="zone-title">✅ Validation & Testing</div>
+                        <div class="zone-description">
+                            Tests adversariaux (FGSM, PGD, AutoAttack) · Audit de biais · Certification Grade A+
+                        </div>
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism-badge">FGSM</div>
+                        <div class="mechanism-badge">PGD</div>
+                        <div class="mechanism-badge">AutoAttack</div>
+                        <div class="mechanism-badge">Fairness Audit</div>
+                    </div>
+                    <div class="validation-gate">Certifié A+</div>
+                </div>
+
+                <!-- Arrow 3→4 -->
+                <div class="arrow-container" style="top: 590px;">
+                    <div class="arrow"></div>
+                </div>
+
+                <!-- Zone 4: Production Deployment -->
+                <div class="zone-box zone4">
+                    <div class="zone-number">4</div>
+                    <div class="zone-content">
+                        <div class="zone-title">🚀 Production Deployment</div>
+                        <div class="zone-description">
+                            API FastAPI sécurisée · Détection temps réel · Rate limiting · Containerisation Docker
+                        </div>
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism-badge">FastAPI</div>
+                        <div class="mechanism-badge">WAF</div>
+                        <div class="mechanism-badge">JWT Auth</div>
+                        <div class="mechanism-badge">Input Filter</div>
+                    </div>
+                    <div class="validation-gate">Production Ready</div>
+                </div>
+
+                <!-- Arrow 4→5 -->
+                <div class="arrow-container" style="top: 750px;">
+                    <div class="arrow"></div>
+                </div>
+
+                <!-- Zone 5: Governance & Monitoring -->
+                <div class="zone-box zone5">
+                    <div class="zone-number">5</div>
+                    <div class="zone-content">
+                        <div class="zone-title">📊 Governance & Monitoring</div>
+                        <div class="zone-description">
+                            Monitoring continu Prometheus/Grafana · Audit logging immutable · Conformité RGPD
+                        </div>
+                    </div>
+                    <div class="zone-mechanisms">
+                        <div class="mechanism-badge">Prometheus</div>
+                        <div class="mechanism-badge">Grafana</div>
+                        <div class="mechanism-badge">Alerting</div>
+                        <div class="mechanism-badge">Compliance</div>
+                    </div>
+                    <div class="validation-gate">Monitored</div>
+                </div>
+
+                <!-- Feedback Loop -->
+                <div class="feedback-loop"></div>
+                <div class="feedback-label">FEEDBACK LOOP</div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-title">Légende</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #4287f5, #2563eb);"></div>
+                    <span><strong>Zone 1</strong> - Sécurité des données</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #4caf50, #2e7d32);"></div>
+                    <span><strong>Zone 2</strong> - Entraînement robuste</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #ffc107, #f57c00);"></div>
+                    <span><strong>Zone 3</strong> - Validation & Tests</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #ff5722, #d32f2f);"></div>
+                    <span><strong>Zone 4</strong> - Production</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #9c27b0, #6a1b9a);"></div>
+                    <span><strong>Zone 5</strong> - Gouvernance</span>
+                </div>
+            </div>
+
+            <!-- Stats Box -->
+            <div class="stats-box">
+                <div class="stats-title">📈 Métriques Clés</div>
+                <div class="stat-item">
+                    <span class="stat-label">Amélioration robustesse</span>
+                    <span class="stat-value">+50%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Perte d'accuracy</span>
+                    <span class="stat-value negative">-3%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Traçabilité</span>
+                    <span class="stat-value">100%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Latence max (CPU)</span>
+                    <span class="stat-value">&lt;200ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Conformité RGPD</span>
+                    <span class="stat-value">✓</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const zones = document.querySelectorAll('.zone-box');
+            zones.forEach((zone, index) => {
+                zone.style.opacity = '0';
+                zone.style.transform = 'translateX(-50px)';
+                setTimeout(() => {
+                    zone.style.transition = 'all 0.6s ease';
+                    zone.style.opacity = '1';
+                    zone.style.transform = 'translateX(0)';
+                }, index * 150);
+            });
+
+            // Print button shortcut
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'p') {
+                    e.preventDefault();
+                    window.print();
+                }
+            });
+
+            console.log('%c🛡️ Architecture 5 Zones - Schéma Visuel', 'color: #667eea; font-size: 20px; font-weight: bold;');
+            console.log('%cPrêt pour export PowerPoint (Ctrl+P)', 'color: #764ba2; font-size: 14px;');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Configuration automatique des datasources Grafana
+# Provisioning : Les datasources sont configurees automatiquement au demarrage
+
+apiVersion: 1
+
+# Supprime toutes les datasources existantes avant de provisionner
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+  - name: Redis
+    orgId: 1
+
+datasources:
+  # Prometheus - Metriques
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    uid: prometheus
+    orgId: 1
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: "15s"

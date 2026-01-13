@@ -526,14 +526,15 @@ class AuditLogger:
 
                         results.append(entry)
 
-                        if len(results) >= limit:
-                            return results
-
                     except json.JSONDecodeError:
                         logging.error(f"[AUDIT_LOGGER] Invalid JSON in log file: {log_file}")
                         continue
 
-        return results
+        # Trier les résultats du plus récent au plus ancien
+        results.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+
+        # Limiter les résultats après le tri
+        return results[:limit]
 
     def get_statistics(self) -> Dict[str, Any]:
         """

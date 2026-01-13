@@ -1,0 +1,317 @@
+[
+  {
+    "timestamp": "2025-12-29T13:36:18.127433",
+    "event_type": "INIT",
+    "message": "Initialisation du testeur adversarial",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:18.493696",
+    "event_type": "MODEL_LOAD",
+    "message": "Mod\u00e8le charg\u00e9: D:\\COURS\\Memoires\\projet\\AA-secure-ai-detection\\models\\baseline\\best_model.pth",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:18.496696",
+    "event_type": "DATA_LOAD",
+    "message": "Dataset test charg\u00e9: 204 \u00e9chantillons",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:18.496696",
+    "event_type": "FGSM_START",
+    "message": "D\u00e9but attaque FGSM (epsilon=0.1)",
+    "level": "WARNING",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:19.938048",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 5, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:21.103872",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 10, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:21.973211",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 15, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:22.865067",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 20, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:23.777855",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 25, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:24.807818",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 30, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:26.006344",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 35, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:27.018375",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 40, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:28.049293",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 45, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:28.976239",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 50, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:30.152620",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 55, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:31.237666",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 60, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:32.374143",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 65, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:33.373133",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 70, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:34.333661",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 75, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:35.551146",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 80, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:36.575550",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 85, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:37.676827",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 90, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:38.682229",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 95, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:39.819495",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 100, Attaques r\u00e9ussies: 0.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:41.154748",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 105, Attaques r\u00e9ussies: 2.9%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:42.200326",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 110, Attaques r\u00e9ussies: 7.3%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:43.164816",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 115, Attaques r\u00e9ussies: 11.3%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:44.182363",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 120, Attaques r\u00e9ussies: 15.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:45.478524",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 125, Attaques r\u00e9ussies: 18.4%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:46.646119",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 130, Attaques r\u00e9ussies: 21.5%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:47.712921",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 135, Attaques r\u00e9ussies: 24.4%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:48.819930",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 140, Attaques r\u00e9ussies: 27.1%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:49.792846",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 145, Attaques r\u00e9ussies: 29.7%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:51.025068",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 150, Attaques r\u00e9ussies: 32.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:52.034128",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 155, Attaques r\u00e9ussies: 34.2%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:53.129058",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 160, Attaques r\u00e9ussies: 36.2%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:54.161003",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 165, Attaques r\u00e9ussies: 38.2%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:55.132576",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 170, Attaques r\u00e9ussies: 40.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:56.206824",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 175, Attaques r\u00e9ussies: 41.7%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:57.208392",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 180, Attaques r\u00e9ussies: 43.3%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:58.320191",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 185, Attaques r\u00e9ussies: 44.9%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:36:59.289712",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 190, Attaques r\u00e9ussies: 46.3%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:37:00.589714",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 195, Attaques r\u00e9ussies: 47.7%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:37:01.728373",
+    "event_type": "FGSM_PROGRESS",
+    "message": "Trait\u00e9s: 200, Attaques r\u00e9ussies: 49.0%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  },
+  {
+    "timestamp": "2025-12-29T13:37:02.692426",
+    "event_type": "FGSM_COMPLETE",
+    "message": "Attaque termin\u00e9e - Success: 50.0%, D\u00e9gradation: 47.5%",
+    "level": "INFO",
+    "component": "AdversarialTester"
+  }
+]

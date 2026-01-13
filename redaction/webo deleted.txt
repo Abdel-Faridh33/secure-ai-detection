@@ -1,0 +1,33 @@
+@article{pan_recent_2019,
+	title = {Recent Progress on Generative Adversarial Networks ({GANs}): A Survey},
+	volume = {7},
+	issn = {2169-3536},
+	url = {https://ieeexplore.ieee.org/abstract/document/8667290},
+	doi = {10.1109/ACCESS.2019.2905015},
+	pages = {36322--36333},
+	journaltitle = {{IEEE} Access},
+	author = {Pan, Zhaoqing and Yu, Weijie and Yi, Xiaokai and Khan, Asifullah and Yuan, Feng and Zheng, Yuhui},
+	urldate = {2025-04-06},
+	date = {2019},
+	keywords = {Data models, Deep learning, Feature extraction, Gallium nitride, generative adversarial networks, Generative adversarial networks, Generators, machine learning, Training, unsupervised learning, Unsupervised learning},
+}
+
+
+@misc{mcmahan_communication-efficient_2023,
+	title = {Communication-Efficient Learning of Deep Networks from Decentralized Data},
+	url = {http://arxiv.org/abs/1602.05629},
+	doi = {10.48550/arXiv.1602.05629},
+	number = {{arXiv}:1602.05629},
+	publisher = {{arXiv}},
+	author = {{McMahan}, H. Brendan and Moore, Eider and Ramage, Daniel and Hampson, Seth and Arcas, Blaise Agüera y},
+	urldate = {2025-12-29},
+	date = {2023-01-26},
+	eprinttype = {arxiv},
+	eprint = {1602.05629 [cs]},
+	keywords = {Computer Science - Machine Learning},
+}
+
+
+
+
+

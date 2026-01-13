@@ -71,6 +71,33 @@
             margin-top: 20px;
             border-radius: 5px;
         }
+        /* Amélioration de la qualité visuelle du diagramme */
+        .mermaid svg {
+            font-size: 18px !important;
+        }
+        .mermaid text {
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            font-family: Arial, sans-serif !important;
+        }
+        .mermaid .cluster text {
+            font-size: 18px !important;
+            font-weight: 600 !important;
+        }
+        .mermaid .edgeLabel {
+            background-color: white !important;
+            padding: 6px 10px !important;
+            font-size: 15px !important;
+        }
+        .mermaid .node rect,
+        .mermaid .node circle,
+        .mermaid .node ellipse,
+        .mermaid .node polygon {
+            stroke-width: 2px !important;
+        }
+        .mermaid .cluster rect {
+            stroke-width: 2px !important;
+        }
     </style>
 </head>
 <body>
@@ -102,10 +129,18 @@ graph TB
         STORAGE["Stockage<br/>Modèles & Résultats"]
     end
 
+    subgraph MONITORING["COUCHE MONITORING"]
+        AUDIT["Audit Logger<br/>Hash Chain SHA-256"]
+        PROM["Prometheus<br/>Métriques"]
+        GRAF["Grafana<br/>Dashboards"]
+        WAF_LOG["WAF Logs<br/>Blocked Requests"]
+    end
+
     subgraph INFRA["INFRASTRUCTURE - Docker"]
         C1["Container: Training"]
         C2["Container: API Service"]
         C3["Container: Web UI"]
+        C4["Container: Monitoring"]
     end
 
     WEB -.HTTP/REST.-> API
@@ -121,21 +156,33 @@ graph TB
     MANAGER --> STORAGE
     METRICS --> STORAGE
 
+    API -.Logs événements.-> AUDIT
+    API -.Métriques.-> PROM
+    SERVING -.Logs prédictions.-> AUDIT
+    MANAGER -.Logs training.-> AUDIT
+    PROM --> GRAF
+    API -.Logs WAF.-> WAF_LOG
+    AUDIT --> STORAGE
+    WAF_LOG --> STORAGE
+
     C1 -.Exécute.-> TRAINING
     C2 -.Exécute.-> SERVICES
     C3 -.Exécute.-> PRESENTATION
+    C4 -.Exécute.-> MONITORING
 
     classDef presentation fill:#e3f2fd,stroke:#2196F3,stroke-width:2px
     classDef services fill:#e8f5e9,stroke:#4CAF50,stroke-width:2px
     classDef training fill:#fff3e0,stroke:#FF9800,stroke-width:2px
     classDef data fill:#fce4ec,stroke:#E91E63,stroke-width:2px
+    classDef monitoring fill:#ffebee,stroke:#C62828,stroke-width:2px
     classDef infra fill:#f3e5f5,stroke:#9C27B0,stroke-width:2px
 
     class WEB presentation
     class API,SERVING services
     class LOADER,MODEL,MANAGER,ADVGEN,METRICS training
     class KAGGLE,COCO,STORAGE data
-    class C1,C2,C3 infra
+    class AUDIT,PROM,GRAF,WAF_LOG monitoring
+    class C1,C2,C3,C4 infra
         </div>
     </div>
 
@@ -202,6 +249,7 @@ graph TB
             <li><span style="background:#e8f5e9; padding:2px 8px; border: 1px solid #4CAF50;">Vert</span> - Couche de services</li>
             <li><span style="background:#fff3e0; padding:2px 8px; border: 1px solid #FF9800;">Orange</span> - Couche d'entraînement</li>
             <li><span style="background:#fce4ec; padding:2px 8px; border: 1px solid #E91E63;">Rose</span> - Couche de données</li>
+            <li><span style="background:#ffebee; padding:2px 8px; border: 1px solid #C62828;">Rouge</span> - Couche monitoring & sécurité (Audit Logger, Prometheus, Grafana, WAF Logs)</li>
             <li><span style="background:#f3e5f5; padding:2px 8px; border: 1px solid #9C27B0;">Violet</span> - Infrastructure Docker</li>
         </ul>
     </div>
@@ -213,8 +261,13 @@ graph TB
             flowchart: {
                 useMaxWidth: true,
                 htmlLabels: true,
-                curve: 'basis'
-            }
+                curve: 'basis',
+                padding: 10,
+                nodeSpacing: 50,
+                rankSpacing: 50
+            },
+            fontSize: 18,
+            fontFamily: 'Arial, sans-serif'
         });
 
         async function captureAsSVG() {
@@ -263,15 +316,20 @@ graph TB
                 const img = new Image();
 
                 img.onload = function() {
-                    // Haute résolution (2x)
-                    canvas.width = img.width * 2;
-                    canvas.height = img.height * 2;
+                    // Très haute résolution (12x pour qualité maximale d'impression)
+                    const scale = 12;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
 
                     // Fond blanc
                     ctx.fillStyle = 'white';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                    // Dessiner l'image
+                    // Amélioration qualité maximale
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+
+                    // Dessiner l'image avec antialiasing
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     // Convertir en PNG et télécharger

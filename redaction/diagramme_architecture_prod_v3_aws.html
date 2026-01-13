@@ -61,6 +61,38 @@
             margin: 20px 0;
             border-radius: 4px;
         }
+        /* Mermaid diagram custom styles */
+        .mermaid svg {
+            font-size: 18px !important;
+        }
+        .mermaid .node rect,
+        .mermaid .node circle,
+        .mermaid .node ellipse,
+        .mermaid .node polygon {
+            stroke-width: 2px !important;
+        }
+        .mermaid .cluster rect {
+            stroke-width: 2px !important;
+            rx: 4px !important;
+            ry: 4px !important;
+        }
+        .mermaid text {
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            font-family: Arial, sans-serif !important;
+        }
+        .mermaid .cluster text {
+            font-size: 17px !important;
+            font-weight: 600 !important;
+        }
+        .mermaid .edgeLabel {
+            background-color: white !important;
+            padding: 8px 8px !important;
+            font-size: 14px !important;
+        }
+        .mermaid .cluster {
+            padding: 20px !important;
+        }
     </style>
 </head>
 <body>
@@ -70,9 +102,10 @@
 
         <div class="mermaid">
 graph TB
-    %% Client Layer
+    %% Internet Layer - Outside VPC
     subgraph Internet["🌐 INTERNET"]
-        CLIENT[Client HTTP/HTTPS]
+        CLIENT[Client <br/>
+        HTTP/HTTPS]
     end
 
     %% VPC / Docker Network
@@ -80,58 +113,58 @@ graph TB
 
         %% Load Balancer / Reverse Proxy
         subgraph LB["REVERSE PROXY"]
-            NGINX[Nginx Alpine<br/>Port 443 HTTPS<br/>TLS 1.3<br/>Compression gzip]
+            NGINX[Nginx]
         end
 
-        %% Security Layer (Zone 4)
-        subgraph SECURITY["ZONE 4: SÉCURISATION"]
+        %% Security Layer
+        subgraph SECURITY["SÉCURISATION"]
             direction TB
-            WAF[WAF Middleware<br/>Rate Limit: 100/min<br/>SQL Injection Detection<br/>XSS Protection]
+            WAF[WAF <br/> Middleware]
 
-            AUTH[JWT Middleware<br/>Algorithm: RS256<br/>Access: 15min<br/>Refresh: 7 days]
+            AUTH[JWT <br/> Middleware]
 
-            PERM[RBAC Middleware<br/>Roles: guest/agent/admin<br/>Permission Matrix]
+            PERM[RBAC <br/> Middleware]
 
-            ANOMALY[Anomaly Detector<br/>Isolation Forest<br/>100 trees, 5% contamination<br/>Threshold: 0.7]
+            ANOMALY[Anomaly Detector]
         end
 
         %% Application Layer
         subgraph APP["CONTENEURS APPLICATION"]
             direction LR
-            API_BASE[baseline-api<br/>FastAPI + Uvicorn<br/>Port 8001<br/>CPU: 2, RAM: 4GB]
+            API_BASE[Baseline <br/> API]
 
-            API_SEC[secured-api<br/>FastAPI + Uvicorn<br/>Port 8002<br/>CPU: 2, RAM: 4GB]
+            API_SEC[Secured <br/> API]
         end
 
         %% ML Models
         subgraph ML["MODÈLES MACHINE LEARNING"]
             direction LR
-            MODEL_BASE[Baseline Model<br/>MobileNetV2<br/>Clean: 97.55%<br/>FGSM: 50%]
+            MODEL_BASE[Baseline <br/> Model]
 
-            MODEL_SEC[Secured Model<br/>Adversarial Trained<br/>Clean: 93.14%<br/>FGSM: 68.14%<br/>AES-256 Encrypted<br/>RSA-4096 Signed]
+            MODEL_SEC[Secured <br/> Model]
         end
 
-        %% Monitoring (Zone 5)
-        subgraph MONITORING["ZONE 5: MONITORING & AUDIT"]
+        %% Monitoring
+        subgraph MONITORING["MONITORING & AUDIT"]
             direction LR
-            PROM[Prometheus<br/>Port 9090<br/>Scrape: 15s<br/>Retention: 15d]
+            PROM[Prometheus]
 
-            GRAF[Grafana<br/>Port 3000<br/>5 Dashboards<br/>Alert Rules]
+            GRAF[Grafana]
 
-            AUDIT_LOG[Audit Logger<br/>Hash Chain SHA-256<br/>Pseudonymisation RGPD]
+            AUDIT_LOG[Audit <br/> Logger]
         end
 
         %% Data Layer
         subgraph DATA["STOCKAGE PERSISTANT"]
             direction LR
-            PG[(PostgreSQL 15<br/>Port 5432<br/>Users, Audit Logs<br/>WAF Blocked IPs<br/>Volume: postgres-data)]
+            PG[(PostgreSQL)]
 
-            RD[(Redis 7<br/>Port 6379<br/>JWT Sessions<br/>Rate Limit Counters<br/>Cache Predictions<br/>AOF Persistence)]
+            RD[(Redis)]
         end
 
     end
 
-    %% Flux principal
+    %% Flux principal - CLIENT first to force top position
     CLIENT -->|HTTPS Request| NGINX
     NGINX --> WAF
     WAF -->|Pass| AUTH
@@ -230,6 +263,15 @@ graph TB
                 <li><strong>API FastAPI</strong> route vers baseline (:8001) ou secured (:8002) → <strong>Modèle IA</strong> inférence</li>
                 <li><strong>Audit Logger</strong> écrit log PostgreSQL (hash chain) + <strong>Prometheus</strong> collecte métriques → <strong>Grafana</strong> dashboard</li>
             </ol>
+
+            <p style="margin-top:20px; padding:15px; background:#E8F5E9; border-left:4px solid #2E7D32; line-height:1.8;">
+                <strong>📋 Description du flux :</strong> Chaque requête client traverse une pipeline de sécurité multicouche avant d'atteindre les modèles d'IA.
+                Le WAF filtre les attaques connues et limite le trafic, suivi de l'authentification JWT et du contrôle d'accès basé sur les rôles.
+                Le détecteur d'anomalies évalue le comportement suspect avant de router la requête vers l'API appropriée (baseline ou sécurisée).
+                Les modèles effectuent l'inférence, tandis que chaque action est auditée de manière immuable dans PostgreSQL et monitorée en temps réel par Prometheus/Grafana.
+                Redis assure la persistance des sessions et des compteurs de rate limiting pour des performances optimales.
+            </p>
+
             <p style="margin-top:20px; padding:15px; background:#FFF3E0; border-left:4px solid #FF9900;">
                 <strong>⚡ Performance :</strong> Latence P95 < 200ms (sans GPU), Throughput 100 req/sec avec 2 instances API, Uptime 99.9% avec restart automatique
             </p>
@@ -244,8 +286,12 @@ graph TB
                 useMaxWidth: true,
                 htmlLabels: true,
                 curve: 'basis',
-                padding: 15
-            }
+                padding: 8,
+                nodeSpacing: 40,
+                rankSpacing: 40
+            },
+            fontSize: 18,
+            fontFamily: 'Arial, sans-serif'
         });
 
         function exportAsSVG() {
@@ -285,10 +331,15 @@ graph TB
                 const img = new Image();
 
                 img.onload = function() {
-                    canvas.width = img.width * 3;
-                    canvas.height = img.height * 3;
+                    // Augmentation de la résolution à 8x pour une qualité maximale
+                    const scale = 8;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
                     ctx.fillStyle = 'white';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    // Utiliser imageSmoothingEnabled pour une meilleure qualité
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     canvas.toBlob(function(blob) {

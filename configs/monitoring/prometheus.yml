@@ -12,29 +12,13 @@ alerting:
           - alertmanager:9093
 
 scrape_configs:
-  # API Services - Dev mode
+  # API Services - Dev mode (single unified API)
   - job_name: 'dev-api'
     static_configs:
       - targets: ['dev:8000']
     metrics_path: /metrics
     scrape_interval: 10s
     scrape_timeout: 5s
-
-  # API Services - Production mode
-  # Uncomment when running in production with separate services
-  # - job_name: 'baseline-api'
-  #   static_configs:
-  #     - targets: ['baseline-api:8000']
-  #   metrics_path: /metrics
-  #   scrape_interval: 10s
-  #   scrape_timeout: 5s
-  #
-  # - job_name: 'secured-api'
-  #   static_configs:
-  #     - targets: ['secured-api:8000']
-  #   metrics_path: /metrics
-  #   scrape_interval: 10s
-  #   scrape_timeout: 5s
 
   # Infrastructure Services
   - job_name: 'prometheus'

@@ -1,0 +1,7 @@
+{
+  "original_filename": "best_secured_model.pth",
+  "encrypted_at": "2025-12-29T10:49:11.370783",
+  "algorithm": "AES-256-GCM",
+  "iv_length": 16,
+  "tag_length": 16
+}

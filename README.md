@@ -194,11 +194,26 @@ MIT License - voir [LICENSE](LICENSE)
 
 fait un push du projet sur github
 
-Redige moi le chapitre 4 maintenant : Resultts et discussions
-Tu as une présentaté les differentes resultats de notre travail ellustré par les capture d'écan. 
-On peut y avoir par exemple : Présentation des visuels conteneurs dockers,  des résultats de l'entrainement sécurisé, documentation d'API , interfaces utilsaturs, comparaison resutats surered avec Baseline. comparaison et positionnement de notre approche . Discussions des résultats . Limites .... Dis dit ce qu'il faut capturer et mettre comme image à chaque fois.
 
 
-Comment fonction les conteneur test explique, il y a aussi des erreur dans le logs de ce conteneur.
 
-Signature RSA-4096 pour non-répudiation : dans chapitre_3.4.tex : pourquoi le titre parle de RSA alors que le code montre sha256 ? Verifie Chiffrement AES-256-GCM du modèle aussi pour etre sur.
+Comment fonction les conteneur *test* explique, il y a aussi des erreur dans le logs de ce conteneur.
+
+Met jour le diagramme 
+
+
+Dans diagramme_pipeline_training_v2.html je veux augmenté la laille des écritures
+
+Je fais des tests de sécurité dans le project : injection SQL, limitation de requete .., comment je peux testé ?
+
+Comment je veux testé l'application à partir de d'autre appareil pour avoir d'autres ip vu que le projet en local ?
+
+
+
+*****
+1 - supprimer les references non exploité
+2 - liste des algos
+3 - Mettre à jour les images de resultats
+4 - Resumé & Abtract ****
+5 - Conclusion Générale 
+5 - Webographie : les liens ne sortent pas 

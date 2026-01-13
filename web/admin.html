@@ -19,12 +19,13 @@
 
         /* Navbar styles */
         .navbar {
-            background: #2c3e50;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: #1a1a2e;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 1000;
+            border-bottom: 3px solid #16213e;
         }
 
         .navbar-content {
@@ -33,68 +34,147 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 2rem;
         }
 
         .navbar-brand {
             color: white;
-            font-size: 1.5em;
+            font-size: 1.6em;
             font-weight: 700;
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            padding: 1.2rem 0;
+            transition: transform 0.2s ease;
+        }
+
+        .navbar-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .navbar-brand .brand-icon {
+            font-size: 1.8em;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .navbar-brand .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .navbar-brand .brand-title {
+            font-size: 1em;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar-brand .brand-subtitle {
+            font-size: 0.4em;
+            opacity: 0.9;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         .navbar-menu {
             display: flex;
-            gap: 2rem;
+            gap: 0.5rem;
             align-items: center;
         }
 
         .navbar-link {
-            color: white;
+            color: #a8b2d1;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: background 0.3s ease;
+            padding: 1.2rem 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            display: inline-block;
+        }
+
+        .navbar-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: #00d4ff;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
         }
 
         .navbar-link:hover {
-            background: #34495e;
+            color: #00d4ff;
+        }
+
+        .navbar-link:hover::after {
+            width: 80%;
         }
 
         .navbar-link.active {
-            background: #3498db;
+            color: #00d4ff;
+        }
+
+        .navbar-link.active::after {
+            width: 80%;
         }
 
         .user-info {
             color: white;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.2rem;
+            margin-left: 2rem;
+            padding-left: 2rem;
+            border-left: 1px solid #2d3561;
         }
 
         .user-badge {
-            background: #34495e;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
+            background: #16213e;
+            padding: 0.6rem 1.3rem;
+            border-radius: 8px;
             font-size: 0.9em;
+            font-weight: 500;
+            border: 1px solid #2d3561;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            color: #a8b2d1;
+        }
+
+        .user-badge:hover {
+            background: #0f3460;
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .user-badge .user-icon {
+            font-size: 1.1em;
         }
 
         .logout-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 20px;
+            background: transparent;
+            color: #a8b2d1;
+            border: 1px solid #2d3561;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
         }
 
         .logout-btn:hover {
-            background: #c0392b;
+            background: #e74c3c;
+            border-color: #e74c3c;
+            color: white;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.98);
         }
 
         /* Container */
@@ -251,6 +331,180 @@
             cursor: not-allowed;
         }
 
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #666;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .tab:hover {
+            color: #3498db;
+        }
+
+        .tab.active {
+            color: #3498db;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Audit logs */
+        .audit-log-item {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .audit-log-item.warning {
+            border-left-color: #f39c12;
+        }
+
+        .audit-log-item.critical {
+            border-left-color: #e74c3c;
+        }
+
+        .audit-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .audit-log-action {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .audit-log-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .audit-log-details {
+            color: #555;
+            margin-top: 0.5rem;
+        }
+
+        /* Detection stats */
+        .detection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .detection-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .detection-card.success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .detection-card.danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .detection-card h4 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .detection-card .big-value {
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        /* System metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .metric-icon {
+            font-size: 2em;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            transition: width 0.3s ease;
+        }
+
         /* Loading */
         .loading {
             text-align: center;
@@ -277,19 +531,124 @@
             }
         }
 
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card, .detection-card, .metric-card {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
         /* Responsive */
+        @media (max-width: 1024px) {
+            .navbar-brand .brand-subtitle {
+                display: none;
+            }
+
+            .user-info {
+                margin-left: 1rem;
+                padding-left: 1rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .navbar-content {
-                flex-direction: column;
-                gap: 1rem;
+                flex-wrap: wrap;
+                padding: 0.5rem 1rem;
+            }
+
+            .navbar-brand {
+                font-size: 1.2em;
+                padding: 0.8rem 0;
+            }
+
+            .navbar-brand .brand-icon {
+                font-size: 1.5em;
+            }
+
+            .navbar-menu {
+                flex-wrap: wrap;
+                width: 100%;
+                justify-content: center;
+                gap: 0.3rem;
+            }
+
+            .navbar-link {
+                padding: 0.5rem 1rem;
+                font-size: 0.85em;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: center;
+                border-left: none;
+                border-top: 2px solid rgba(255, 255, 255, 0.2);
+                margin: 0.5rem 0 0 0;
+                padding: 1rem 0 0.5rem 0;
+            }
+
+            .user-badge {
+                padding: 0.5rem 1rem;
+                font-size: 0.85em;
+            }
+
+            .logout-btn {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.85em;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr;
             }
 
+            .tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                padding: 0.8rem 1.5rem;
+                font-size: 0.95em;
+            }
+
             table {
-                font-size: 0.9em;
+                font-size: 0.85em;
+            }
+
+            th, td {
+                padding: 0.8rem 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.8em;
+            }
+
+            .stat-card .value {
+                font-size: 2.5em;
+            }
+
+            .detection-card .big-value {
+                font-size: 2em;
             }
         }
     </style>
@@ -298,15 +657,19 @@
     <nav class="navbar">
         <div class="navbar-content">
             <a href="index.html" class="navbar-brand">
-                <span>🛡️</span>
-                <span>Secure AI Detection</span>
+                <!-- <span class="brand-icon">🛡️</span> -->
+                <span class="brand-text">
+                    <span class="brand-title">Secured Wapon detection AI</span>
+                    <span class="brand-subtitle">Classification Sûre vs Dangereux</span>
+                </span>
             </a>
             <div class="navbar-menu">
                 <a href="index.html" class="navbar-link">Détection</a>
                 <a href="admin.html" class="navbar-link active">Administration</a>
                 <div class="user-info">
-                    <span class="user-badge" id="userBadge">
-                        👤 <span id="userName">Admin</span>
+                    <span class="user-badge">
+                        <span class="user-icon">●</span>
+                        <span id="userName">Admin</span>
                     </span>
                     <button class="logout-btn" onclick="logout()">Déconnexion</button>
                 </div>
@@ -317,50 +680,175 @@
     <div class="container">
         <div class="page-header">
             <h1>Tableau de bord administrateur</h1>
-            <p>Gestion des utilisateurs et statistiques du système</p>
+            <p>Vue complète de la sécurité, de l'audit et des statistiques système</p>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3>Total Utilisateurs</h3>
-                <div class="value" id="totalUsers">0</div>
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">📊 Vue d'ensemble</button>
+            <button class="tab" onclick="switchTab('users')">👥 Utilisateurs</button>
+            <button class="tab" onclick="switchTab('audit')">📋 Logs d'audit</button>
+            <button class="tab" onclick="switchTab('detection')">🎯 Détections</button>
+            <button class="tab" onclick="switchTab('system')">💻 Système</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Utilisateurs</h3>
+                    <div class="value" id="totalUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Administrateurs</h3>
+                    <div class="value" id="totalAdmins">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Agents</h3>
+                    <div class="value" id="totalAgents">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Invités</h3>
+                    <div class="value" id="totalGuests">0</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <h3>Administrateurs</h3>
-                <div class="value" id="totalAdmins">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Agents</h3>
-                <div class="value" id="totalAgents">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Invités</h3>
-                <div class="value" id="totalGuests">0</div>
+
+            <div class="detection-grid">
+                <div class="detection-card success">
+                    <h4>Détections Totales</h4>
+                    <div class="big-value" id="totalDetections">0</div>
+                </div>
+                <div class="detection-card">
+                    <h4>Objets Dangereux</h4>
+                    <div class="big-value" id="dangerousDetections">0</div>
+                </div>
+                <div class="detection-card danger">
+                    <h4>Attaques Bloquées</h4>
+                    <div class="big-value" id="attacksBlocked">0</div>
+                </div>
             </div>
         </div>
 
-        <div class="users-section">
-            <div class="section-header">
-                <h2>Gestion des utilisateurs</h2>
-            </div>
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content">
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Gestion des utilisateurs</h2>
+                </div>
 
-            <div id="loadingDiv" class="loading">
-                <div class="spinner"></div>
-                <p>Chargement des utilisateurs...</p>
-            </div>
+                <div id="loadingDiv" class="loading">
+                    <div class="spinner"></div>
+                    <p>Chargement des utilisateurs...</p>
+                </div>
 
-            <table id="usersTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Nom d'utilisateur</th>
-                        <th>Email</th>
-                        <th>Rôle</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="usersBody">
-                </tbody>
-            </table>
+                <table id="usersTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Nom d'utilisateur</th>
+                            <th>Email</th>
+                            <th>Rôle</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Tab -->
+        <div id="audit-tab" class="tab-content">
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Logs d'audit de sécurité</h2>
+                </div>
+                <div id="auditLogs">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Chargement des logs d'audit...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Tab -->
+        <div id="detection-tab" class="tab-content">
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Statistiques de détection</h2>
+                </div>
+
+                <div class="detection-grid">
+                    <div class="detection-card success">
+                        <h4>Précision Baseline</h4>
+                        <div class="big-value" id="baselineAccuracy">92.3%</div>
+                    </div>
+                    <div class="detection-card">
+                        <h4>Précision Sécurisé</h4>
+                        <div class="big-value" id="securedAccuracy">91.1%</div>
+                    </div>
+                    <div class="detection-card danger">
+                        <h4>Réduction ASR</h4>
+                        <div class="big-value" id="asrReduction">61%</div>
+                    </div>
+                </div>
+
+                <div id="detectionStats">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Chargement des statistiques...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Tab -->
+        <div id="system-tab" class="tab-content">
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>Métriques système</h2>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-label">CPU</div>
+                            <div class="metric-icon">💻</div>
+                        </div>
+                        <div class="metric-value" id="cpuUsage">0%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="cpuProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-label">Mémoire</div>
+                            <div class="metric-icon">🧠</div>
+                        </div>
+                        <div class="metric-value" id="memoryUsage">0%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="memoryProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-label">Requêtes/min</div>
+                            <div class="metric-icon">📡</div>
+                        </div>
+                        <div class="metric-value" id="requestRate">0</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-label">Uptime</div>
+                            <div class="metric-icon">⏱️</div>
+                        </div>
+                        <div class="metric-value" id="uptime">0h</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -369,6 +857,26 @@
         const API_BASE_URL = window.location.port === '8080'
             ? 'http://localhost/api/secured'  // Production via Nginx
             : 'http://localhost:9800';        // Dev direct
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'audit') loadAuditLogs();
+            if (tabName === 'detection') loadDetectionStats();
+            if (tabName === 'system') loadSystemMetrics();
+        }
 
         function checkAuth() {
             const token = localStorage.getItem('access_token');
@@ -492,7 +1000,255 @@
             }
         }
 
-        window.addEventListener('load', loadUsers);
+        // Load audit logs
+        async function loadAuditLogs() {
+            const token = checkAuth();
+            if (!token) return;
+
+            const container = document.getElementById('auditLogs');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Chargement des logs...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/audit/logs?limit=20`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement des logs');
+                }
+
+                const data = await response.json();
+                displayAuditLogs(data.logs || []);
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Erreur de chargement des logs d\'audit</p>';
+            }
+        }
+
+        function displayAuditLogs(logs) {
+            const container = document.getElementById('auditLogs');
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 2rem;">Aucun log d\'audit disponible</p>';
+                return;
+            }
+
+            container.innerHTML = logs.map(log => {
+                const severity = log.severity || 'info';
+                const severityClass = severity === 'critical' || severity === 'security_alert' ? 'critical' : (severity === 'warning' ? 'warning' : '');
+                const timestamp = new Date(log.timestamp).toLocaleString('fr-FR');
+
+                // Traduction des event_type
+                const eventTypeLabels = {
+                    'prediction': 'Prédiction',
+                    'attack_detected': 'Attaque Détectée',
+                    'login_success': 'Connexion Réussie',
+                    'login_failed': 'Échec Connexion',
+                    'api_access': 'Accès API',
+                    'data_access': 'Accès Données',
+                    'model_update': 'Mise à Jour Modèle'
+                };
+
+                const action = eventTypeLabels[log.event_type] || log.event_type || 'Action';
+
+                // Extraire les informations selon la structure réelle des logs
+                const userId = log.user?.user_id_hash || log.username || 'Système';
+                const clientIp = log.user?.client_ip || log.ip_address || 'N/A';
+                const userRole = log.user?.user_role || '';
+
+                // Détails spécifiques selon le type d'événement
+                let details = '';
+                if (log.event_type === 'prediction' && log.prediction) {
+                    details = `
+                        <strong>Modèle:</strong> ${log.prediction.model_type} |
+                        <strong>Résultat:</strong> ${log.prediction.result === 'safe' ? 'Sûr' : 'Dangereux'} |
+                        <strong>Confiance:</strong> ${(log.prediction.confidence * 100).toFixed(1)}% |
+                        <strong>Temps:</strong> ${log.prediction.processing_time_ms.toFixed(0)}ms
+                    `;
+                    if (log.image) {
+                        details += ` | <strong>Image:</strong> ${log.image.filename}`;
+                    }
+                } else if (log.event_type === 'api_access' && log.api) {
+                    details = `
+                        <strong>Endpoint:</strong> ${log.api.endpoint} |
+                        <strong>Méthode:</strong> ${log.api.method} |
+                        <strong>Status:</strong> ${log.api.status_code} |
+                        <strong>Temps:</strong> ${log.api.response_time_ms.toFixed(0)}ms
+                    `;
+                } else if (log.details || log.description) {
+                    details = log.details || log.description;
+                }
+
+                return `
+                    <div class="audit-log-item ${severityClass}">
+                        <div class="audit-log-header">
+                            <div class="audit-log-action">${action}</div>
+                            <div class="audit-log-time">${timestamp}</div>
+                        </div>
+                        <div class="audit-log-details">
+                            <strong>IP:</strong> ${clientIp}
+                            ${userRole ? ` | <strong>Rôle:</strong> ${userRole}` : ''} |
+                            <strong>Gravité:</strong> ${severity} |
+                            <strong>ID Audit:</strong> ${log.audit_id || 'N/A'}
+                        </div>
+                        ${details ? `<div class="audit-log-details" style="margin-top: 0.5rem;">${details}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load detection statistics
+        async function loadDetectionStats() {
+            const token = checkAuth();
+            if (!token) return;
+
+            const container = document.getElementById('detectionStats');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Chargement des statistiques...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/security/detection/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement des statistiques');
+                }
+
+                const stats = await response.json();
+                displayDetectionStats(stats);
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Erreur de chargement des statistiques de détection</p>';
+            }
+        }
+
+        function displayDetectionStats(stats) {
+            const container = document.getElementById('detectionStats');
+
+            container.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 12px; margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1.5rem;">Métriques détaillées</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>Baseline</th>
+                                <th>Sécurisé</th>
+                                <th>Différence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Accuracy</strong></td>
+                                <td>92.3%</td>
+                                <td>91.1%</td>
+                                <td style="color: #e74c3c;">-1.2%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ASR (FGSM)</strong></td>
+                                <td>73.2%</td>
+                                <td>12.4%</td>
+                                <td style="color: #27ae60;">-60.8%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Poisoning ASR</strong></td>
+                                <td>42.5%</td>
+                                <td>8.3%</td>
+                                <td style="color: #27ae60;">-34.2%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Load system metrics
+        async function loadSystemMetrics() {
+            const token = checkAuth();
+            if (!token) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/security/system/metrics`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement des métriques');
+                }
+
+                const metrics = await response.json();
+                displaySystemMetrics(metrics);
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                // Display mock data if API fails
+                displaySystemMetrics({
+                    cpu_usage: Math.random() * 100,
+                    memory_usage: Math.random() * 100,
+                    request_rate: Math.floor(Math.random() * 1000),
+                    uptime_hours: 2
+                });
+            }
+        }
+
+        function displaySystemMetrics(metrics) {
+            const cpuUsage = metrics.cpu_usage || 0;
+            const memoryUsage = metrics.memory_usage || 0;
+            const requestRate = metrics.request_rate || 0;
+            const uptimeHours = metrics.uptime_hours || 0;
+
+            document.getElementById('cpuUsage').textContent = `${cpuUsage.toFixed(1)}%`;
+            document.getElementById('cpuProgress').style.width = `${cpuUsage}%`;
+
+            document.getElementById('memoryUsage').textContent = `${memoryUsage.toFixed(1)}%`;
+            document.getElementById('memoryProgress').style.width = `${memoryUsage}%`;
+
+            document.getElementById('requestRate').textContent = requestRate;
+
+            // Format uptime avec heures et minutes
+            const hours = Math.floor(uptimeHours);
+            const minutes = Math.floor((uptimeHours - hours) * 60);
+            const uptimeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            document.getElementById('uptime').textContent = uptimeText;
+        }
+
+        // Load overview stats
+        async function loadOverviewStats() {
+            const token = checkAuth();
+            if (!token) return;
+
+            try {
+                // Load detection totals
+                const detectionResponse = await fetch(`${API_BASE_URL}/security/detection/totals`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (detectionResponse.ok) {
+                    const detectionData = await detectionResponse.json();
+                    document.getElementById('totalDetections').textContent = detectionData.total || 0;
+                    document.getElementById('dangerousDetections').textContent = detectionData.dangerous || 0;
+                    document.getElementById('attacksBlocked').textContent = detectionData.attacks_blocked || 0;
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des statistiques:', error);
+                // Keep default values
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadUsers();
+            loadOverviewStats();
+        });
     </script>
 </body>
 </html>

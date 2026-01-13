@@ -3,19 +3,16 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Installation des dépendances minimales
+# Installation des dépendances
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --default-timeout=1000 --retries 5 \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    torch torchvision fastapi uvicorn python-multipart numpy pillow prometheus-client PyJWT
+    -r requirements.txt && \
+    pip install redis
 
 # Copie du code nécessaire
-COPY src/api/ ./src/api/
-COPY src/evaluation/metrics/ ./src/evaluation/metrics/
-COPY src/monitoring/ ./src/monitoring/
-COPY src/security/ ./src/security/
-COPY src/database/ ./src/database/
+COPY src/ ./src/
 COPY models/utils/ ./models/utils/
 
 # Configuration production

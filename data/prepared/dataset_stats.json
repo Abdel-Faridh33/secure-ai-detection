@@ -1,0 +1,27 @@
+{
+  "dataset_info": {
+    "target_per_class": 1000,
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "test_ratio": 0.15,
+    "seed": 42
+  },
+  "splits": {
+    "train": {
+      "safe": 699,
+      "dangerous": 699,
+      "total": 1398
+    },
+    "val": {
+      "safe": 147,
+      "dangerous": 147,
+      "total": 294
+    },
+    "test": {
+      "safe": 102,
+      "dangerous": 102,
+      "total": 204
+    }
+  },
+  "total_images": 1896
+}

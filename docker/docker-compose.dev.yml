@@ -64,8 +64,8 @@ services:
     image: prom/prometheus:latest
     container_name: secure-ai-prometheus1
     volumes:
-      - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ../configs/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../configs/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9890:9090"

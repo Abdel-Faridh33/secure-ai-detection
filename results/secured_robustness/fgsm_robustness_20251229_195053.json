@@ -1,0 +1,20 @@
+{
+  "test_type": "secured_model_fgsm_robustness",
+  "architecture_compliance": "Zone3_Validation_Test",
+  "timestamp": "20251229_195053",
+  "secured_performance": {
+    "attack_type": "FGSM_Robustness_Test",
+    "model_type": "secured",
+    "epsilon": 0.1,
+    "total_samples": 204,
+    "clean_accuracy": 93.13725490196079,
+    "adversarial_accuracy": 68.13725490196079,
+    "attack_success_rate": 31.862745098039213,
+    "robustness_degradation": 25.0
+  },
+  "security_assessment": {
+    "fgsm_success_rate": 31.862745098039213,
+    "robustness_degradation": 25.0,
+    "adversarial_training_applied": true
+  }
+}

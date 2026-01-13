@@ -146,28 +146,30 @@
 
         <div class="mermaid">
 graph LR
+    
     subgraph Input["ENTREE"]
-        D1[("Dataset Brut<br/><br/>1,896 images<br/>Kaggle + COCO")]
+        D1[("Dataset Brut<br/><br/>1,896 images<br/>")]
     end
 
-    subgraph Zone1["ZONE 1: SECURISATION DONNEES"]
+    subgraph Zone1["SECURISATION DONNEES"]
         V1["DataVerifier<br/>━━━━━━━━━<br/>✓ Chi-Square Test<br/>✓ Z-Score Outliers<br/>✓ KS Distribution<br/>━━━━━━━━━<br/>Quality: 75.5/100"]
 
-        P1["PoisoningDetector<br/>━━━━━━━━━<br/>DBSCAN Clustering<br/>MobileNetV2 Features<br/>━━━━━━━━━<br/>400 suspects (28.6%)"]
+        P1["PoisoningDetector<br/>━━━━━━━━━<br/>DBSCAN Clustering<br/>MobileNetV2 Features<br/>━━━━━━━━━<br/> N suspects images"]
 
-        Q1["⚠ QUARANTINE ⚠<br/>━━━━━━━━━<br/>400 images isolees<br/>data/quarantine/<br/>━━━━━━━━━<br/>Rapport JSON"]
+        Q1["⚠ QUARANTINE ⚠<br/>━━━━━━━━━<br/>N images isolees<br/>data/quarantine/<br/>━━━━━━━━━<br/>Rapport JSON"]
 
-        C1[("Dataset Propre<br/><br/>998 images<br/>50% safe / 50% dangerous")]
+        C1[("Dataset Propre<br/><br/>images<br/>50% safe / 50% dangerous")]
     end
 
-    subgraph Zone2["ZONE 2: ADVERSARIAL TRAINING"]
+    subgraph Zone2["ADVERSARIAL TRAINING"]
         direction TB
 
         B1["Batch Clean<br/>━━━━━━━━━<br/>70% des donnees<br/>Images originales"]
 
-        B2["Generation FGSM<br/>━━━━━━━━━<br/>30% des donnees<br/>epsilon = 0.08<br/>x_adv = x + ε·sign(∇L)"]
+        B2["Generation FGSM<br/>━━━━━━━━━<br/>30% des donnees<br/>epsilon = 0.08<br/>"]
 
-        M1["MobileNetV2<br/>━━━━━━━━━<br/>Transfer Learning<br/>Dropout: 0.45<br/>Gradient Clip: 1.0"]
+        M1["MobileNetV2<br/>━━━━━━━━━<br/>Transfer Learning
+        <!-- <br/>Dropout: 0.45<br/>Gradient Clip: 1.0"] -->
 
         L1["Loss Combinee<br/>━━━━━━━━━<br/>L = 0.7·L_clean<br/>  + 0.3·L_adv"]
 
@@ -177,19 +179,19 @@ graph LR
         B2 --> M1
         M1 --> L1
         L1 --> O1
-        O1 -.->|Loop 11 epochs| M1
+        O1 -.->|Loop de y - epochs| M1
     end
 
     subgraph Results["RESULTATS"]
-        R1["📊 Metriques<br/>━━━━━━━━━<br/>Val Acc: 89.46%<br/>FGSM Acc: 68.14%<br/>Robustness: +36%"]
+        R1["📊 Metriques<br/>━━━━━━━━━<br/>Val Acc<br/>FGSM Acc<br/>Robustness"]
     end
 
     subgraph Storage["STOCKAGE SECURISE"]
         direction TB
 
-        S1["best_model.pth<br/>━━━━━━━━━<br/>Epoch 7<br/>Val: 89.46%"]
+        S1["best_model.pth<br/>━━━━━━━━━<br/>Epoch x<br/>Val: X%"]
 
-        S2["final_model.pth<br/>━━━━━━━━━<br/>Epoch 11<br/>Train: 99.78%"]
+        S2["final_model.pth<br/>━━━━━━━━━<br/>Epoch y<br/>Train: Y%"]
 
         S3["Checkpoints<br/>━━━━━━━━━<br/>epoch_5.pth<br/>epoch_10.pth"]
 
@@ -197,9 +199,9 @@ graph LR
     end
 
     subgraph Security["SECURITE CRYPTOGRAPHIQUE"]
-        E1["🔒 AES-256-GCM<br/>━━━━━━━━━<br/>PBKDF2 100k iter<br/>Nonce 96 bits<br/>Tag 128 bits"]
+        E1["AES-256-GCM<br/>━━━━━━━━━<br/>PBKDF2 100k iter<br/>Nonce 96 bits<br/>Tag 128 bits"]
 
-        E2["✍ RSA-4096<br/>━━━━━━━━━<br/>SHA-256 hash<br/>PSS padding<br/>Signature verificable"]
+        E2["RSA-4096<br/>━━━━━━━━━<br/>SHA-256 hash<br/>PSS padding<br/>Signature verificable"]
     end
 
     subgraph Output["SORTIE PRODUCTION"]
@@ -209,11 +211,11 @@ graph LR
     %% Flux principal
     D1 ==>|"1,896 images"| V1
     V1 ==>|"Stats OK"| P1
-    P1 ==>|"28.6% suspects"| Q1
+    P1 ==>|"n% suspects"| Q1
     P1 ==>|"998 images propres"| C1
     C1 ==>|"Split 70/30"| B1
     C1 ==>|"Split 70/30"| B2
-    M1 ==>|"11 epochs"| R1
+    M1 ==>|"y - epochs"| R1
     R1 ==>|"Sauvegarde"| S1
     R1 ==>|"Sauvegarde"| S2
     R1 ==>|"Sauvegarde"| S3
@@ -245,7 +247,7 @@ graph LR
 
         <div class="note">
             <strong>⚡ Flux de Données Complet</strong>
-            1,896 images brutes → Validation statistique → Détection poisoning (400 quarantined) → 998 images propres → Mix 70% clean / 30% FGSM → Adversarial Training (11 epochs) → Modèle sécurisé (89.46% val, 68.14% FGSM) → Chiffrement AES-256 + Signature RSA-4096 → Déploiement production
+            1,896 images brutes → Validation statistique → Détection poisoning (400 quarantined) → 998 images propres → Mix 70% clean / 30% FGSM → Adversarial Training (Y epochs) → Modèle sécurisé (89.46% val, 68.14% FGSM) → Chiffrement AES-256 + Signature RSA-4096 → Déploiement production
         </div>
 
         <div class="stats-grid">
@@ -373,8 +375,10 @@ graph LR
 
                 img.onload = function() {
                     // Haute résolution pour LaTeX (3x)
-                    canvas.width = img.width * 3;
-                    canvas.height = img.height * 3;
+                    // Très haute résolution (12x pour qualité maximale d'impression)
+                    const scale = 12;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
                     ctx.fillStyle = 'white';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);

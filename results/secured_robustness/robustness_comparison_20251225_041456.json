@@ -1,0 +1,51 @@
+{
+  "test_type": "secured_model_robustness",
+  "architecture_compliance": "Zone3_Validation_Test",
+  "timestamp": "20251225_041456",
+  "baseline_vulnerabilities": {
+    "fgsm_success": 0.0,
+    "pgd_success": 53.3
+  },
+  "secured_performance": {
+    "fgsm_success": 21.568627450980394,
+    "pgd_success": 100.0
+  },
+  "robustness_improvements": {
+    "fgsm_improvement": -21.568627450980394,
+    "pgd_improvement": -46.7
+  },
+  "security_assessment": {
+    "overall_level": "LOW_SECURITY",
+    "adversarial_training_effective": false,
+    "robustness_gain": "-46.7% improvement"
+  },
+  "detailed_results": {
+    "fgsm_test": {
+      "attack_type": "FGSM_Robustness_Test",
+      "model_type": "secured",
+      "epsilon": 0.1,
+      "total_samples": 204,
+      "clean_accuracy": 96.07843137254902,
+      "adversarial_accuracy": 78.43137254901961,
+      "attack_success_rate": 21.568627450980394,
+      "robustness_degradation": 17.647058823529406
+    },
+    "pgd_test": {
+      "attack_type": "PGD_Robustness_Test",
+      "model_type": "secured",
+      "epsilon": 0.1,
+      "alpha": 0.02,
+      "num_iterations": 10,
+      "total_samples": 204,
+      "clean_accuracy": 96.07843137254902,
+      "adversarial_accuracy": 0.0,
+      "attack_success_rate": 100.0,
+      "robustness_degradation": 96.07843137254902,
+      "baseline_comparison": {
+        "baseline_pgd_success": 53.3,
+        "improvement": -46.7
+      },
+      "security_level": "LOW_SECURITY"
+    }
+  }
+}

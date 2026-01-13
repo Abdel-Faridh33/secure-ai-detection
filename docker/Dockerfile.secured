@@ -8,7 +8,8 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --default-timeout=1000 --retries 5 \
     --extra-index-url https://download.pytorch.org/whl/cpu \
-    torch torchvision fastapi uvicorn python-multipart numpy pillow opacus prometheus-client PyJWT
+    -r requirements.txt && \
+    pip install redis
 
 # Copie du code avec défenses
 COPY src/ ./src/

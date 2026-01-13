@@ -154,7 +154,7 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus-prod1
     volumes:
-      - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../configs/monitoring/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
       - ../configs/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus-data:/prometheus
     ports:

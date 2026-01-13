@@ -1,0 +1,283 @@
+{
+  "dashboard": {
+    "title": "Security Monitoring Dashboard",
+    "uid": "secure-security-mon",
+    "tags": ["security", "logs", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Total Events (Last Hour)",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count_over_time({job=\"audit\"}[1h])",
+            "legendFormat": "Events",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Security Alerts",
+        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count_over_time({job=\"audit\",severity=\"security_alert\"}[1h])",
+            "legendFormat": "Alerts",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Critical Events",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count_over_time({job=\"audit\",severity=\"critical\"}[1h])",
+            "legendFormat": "Critical",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "orange"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Failed Validations",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count_over_time({job=\"audit\",event_type=\"validation_failed\"}[1h])",
+            "legendFormat": "Validation Failures",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 20, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "Events by Severity",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (severity) (count_over_time({job=\"audit\"}[5m]))",
+            "legendFormat": "{{severity}}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80,
+              "stacking": {"mode": "normal"}
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Events by Type",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (event_type) (count_over_time({job=\"audit\"}[5m]))",
+            "legendFormat": "{{event_type}}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "logs",
+        "title": "Recent Security Alerts",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 10},
+        "targets": [
+          {
+            "expr": "{job=\"audit\",severity=\"security_alert\"}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true
+        }
+      },
+      {
+        "id": 8,
+        "type": "logs",
+        "title": "Recent Critical Events",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 10},
+        "targets": [
+          {
+            "expr": "{job=\"audit\",severity=\"critical\"}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true
+        }
+      },
+      {
+        "id": 9,
+        "type": "table",
+        "title": "Top Client IPs",
+        "gridPos": {"x": 0, "y": 22, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "topk(10, count by (client_ip) (count_over_time({job=\"audit\"}[1h])))",
+            "legendFormat": "{{client_ip}}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "piechart",
+        "title": "Predictions - Safe vs Dangerous",
+        "gridPos": {"x": 12, "y": 22, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (prediction) (count_over_time({job=\"audit\",event_type=\"prediction\"}[1h]))",
+            "legendFormat": "{{prediction}}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "right"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "logs",
+        "title": "All Audit Logs (Last 50)",
+        "gridPos": {"x": 0, "y": 30, "w": 24, "h": 12},
+        "targets": [
+          {
+            "expr": "{job=\"audit\"}",
+            "refId": "A",
+            "datasource": "Loki"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true,
+          "dedupStrategy": "none"
+        }
+      }
+    ]
+  }
+}

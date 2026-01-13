@@ -53,7 +53,7 @@ build:
 # Attendre que les containers soient prêts
 wait-for-containers:
 	@echo "⏳ Attente du démarrage des containers (5 secondes)..."
-	@sleep 5
+	@powershell -Command "Start-Sleep -Seconds 5"
 
 # 🚀 COMMANDE PRINCIPALE - Démarre tout en une fois
 up: build
@@ -88,7 +88,7 @@ up: build
 demo: up
 	@echo ""
 	@echo "🌍 Ouverture de l'interface web dans le navigateur..."
-	@sleep 2
+	@powershell -Command "Start-Sleep -Seconds 2"
 	@python launch_web.py || (command -v xdg-open > /dev/null && xdg-open http://localhost:8080) || (command -v open > /dev/null && open http://localhost:8080) || echo "⚠️  Ouvrez manuellement: http://localhost:8080"
 
 # Environnement de développement (commande legacy)
@@ -128,7 +128,7 @@ open-web:
 start-api:
 	@echo "🚀 Démarrage de l'API..."
 	@docker exec -d secure-ai-dev1 bash -c "cd /workspace && nohup python -m uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload > /tmp/api.log 2>&1 &"
-	@sleep 3
+	@powershell -Command "Start-Sleep -Seconds 3"
 	@echo "✅ API disponible sur http://localhost:9800"
 	@echo "📋 Logs: docker exec secure-ai-dev1 tail -f /tmp/api.log"
 
@@ -164,7 +164,7 @@ prod:
 	$(DOCKER_COMPOSE_PROD) up -d
 	@echo ""
 	@echo "⏳ Étape 3/3: Attente du démarrage complet (15 secondes)..."
-	@sleep 15
+	@powershell -Command "Start-Sleep -Seconds 15"
 	@echo ""
 	@$(MAKE) --no-print-directory status-prod
 	@echo ""

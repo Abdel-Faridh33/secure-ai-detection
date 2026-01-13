@@ -1,0 +1,11 @@
+{
+  "attack_type": "PGD",
+  "epsilon": 0.1,
+  "alpha": 0.02,
+  "num_iterations": 10,
+  "total_samples": 204,
+  "clean_accuracy": 97.54901960784314,
+  "adversarial_accuracy": 1.4705882352941175,
+  "attack_success_rate": 98.52941176470588,
+  "robustness_degradation": 96.07843137254902
+}

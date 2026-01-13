@@ -295,125 +295,146 @@ Le dashboard de sécurité (figure~\ref{fig:grafana_security}) affiche les métr
 \end{itemize}
 
 
-\section{Analyse comparative et positionnement}
+\section{Discussion}
+
+Ce chapitre discute les résultats obtenus et positionne notre contribution par rapport à l'état de l'art. Nous analysons les forces et limites de notre approche, puis présentons les perspectives d'amélioration.
 
 \subsection{Comparaison avec l'état de l'art}
 
-Le tableau~\ref{tab:state_of_art} compare notre approche avec les travaux existants sur la robustesse des modèles de détection d'images.
+Le tableau~\ref{tab:state_of_art_5zones} compare notre architecture à 5 zones avec les principales approches existantes en sécurisation de modèles ML.
 
 \begin{table}[H]
     \centering
-    \caption{Comparaison avec l'état de l'art}
-    \label{tab:state_of_art}
+    \caption{Comparaison des approches de sécurisation ML et positionnement de notre contribution}
+    \label{tab:state_of_art_5zones}
     \small
-    \begin{tabular}{p{3cm}p{2.5cm}p{2.5cm}p{2cm}p{3cm}}
+    \begin{tabular}{|p{2.8cm}|p{2.3cm}|p{2.3cm}|p{2.3cm}|p{2.3cm}|}
+        \hline
+        \textbf{Approche} & \textbf{Protection adversariale} & \textbf{Protection confidentialité} & \textbf{Intégration DevSecOps} & \textbf{Validation empirique} \\
+        \hline
+        Madry et al. (2018) & \cellcolor{green!25}Forte (PGD) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+        \hline
+        TRADES (Zhang 2019) & \cellcolor{green!25}Forte (contrôlable) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+        \hline
+        DP-SGD (Abadi 2016) & \cellcolor{red!25}Aucune & \cellcolor{green!25}Forte ($\epsilon$-DP) & \cellcolor{red!25}Aucune & \cellcolor{green!25}Extensive \\
+        \hline
+        Apprentissage fédéré & \cellcolor{yellow!25}Indirecte & \cellcolor{yellow!25}Moyenne & \cellcolor{red!25}Aucune & \cellcolor{yellow!25}Moyenne \\
+        \hline
+        MLSecOps (Kumar 2020) & \cellcolor{red!25}Aucune & \cellcolor{red!25}Aucune & \cellcolor{green!25}Complète & \cellcolor{red!25}Conceptuelle \\
+        \hline
+        Google SAIF & \cellcolor{yellow!25}Partielle & \cellcolor{yellow!25}Partielle & \cellcolor{green!25}Complète & \cellcolor{yellow!25}Industrielle \\
+        \hline
+        Défense multi-couches (Papernot 2018) & \cellcolor{yellow!25}Variable & \cellcolor{red!25}Aucune & \cellcolor{yellow!25}Partielle & \cellcolor{red!25}Limitée \\
+        \hline
+        \textbf{Notre approche (5 zones)} & \cellcolor{green!25}\textbf{Forte (AT-FGSM)} & \cellcolor{yellow!25}\textbf{Prévue (DP)} & \cellcolor{green!25}\textbf{Complète} & \cellcolor{green!25}\textbf{Empirique} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Notre architecture à 5 zones se distingue par son approche holistique intégrant simultanément plusieurs dimensions de sécurité :
+
+\begin{itemize}
+    \item \textbf{Zone 1 - Validation d'entrée} : WAF avec détection SQL injection, XSS, rate limiting (100 req/min)
+    \item \textbf{Zone 2 - Robustesse adversariale} : Adversarial training FGSM avec amélioration de +36.3\% de robustesse
+    \item \textbf{Zone 3 - Validation de sortie} : Détection d'anomalies avec scoring de risque et seuils adaptatifs
+    \item \textbf{Zone 4 - Sécurisation des accès} : Authentification JWT avec RBAC (3 rôles), audit immuable avec hash chains
+    \item \textbf{Zone 5 - Gouvernance} : Monitoring temps réel (Prometheus/Grafana), dashboards sécurité, alerting
+\end{itemize}
+
+\textbf{Comparaison quantitative avec l'état de l'art (robustesse adversariale)} :
+
+\begin{table}[H]
+    \centering
+    \caption{Comparaison quantitative des métriques de robustesse}
+    \label{tab:quantitative_comparison}
+    \small
+    \begin{tabular}{lccc}
         \toprule
-        \textbf{Approche} & \textbf{Défense} & \textbf{Clean Acc.} & \textbf{FGSM Acc.} & \textbf{Limites} \\
+        \textbf{Approche} & \textbf{Clean Accuracy} & \textbf{FGSM Accuracy} & \textbf{Temps entraînement} \\
         \midrule
-        Madry et al. (2018) & AT-PGD & 87.3\% & 75.2\% & Coût élevé, lent \\
+        Madry et al. (2018) & 87.3\% & 75.2\% & 30+ epochs \\
+        Zhang et al. (2019) & 89.5\% & 70.8\% & 25+ epochs \\
+        Wong et al. (2020) & 91.2\% & 65.4\% & 15+ epochs \\
         \midrule
-        Zhang et al. (2019) & TRADES & 89.5\% & 70.8\% & Hyperparamètres sensibles \\
-        \midrule
-        Wong et al. (2020) & Fast AT & 91.2\% & 65.4\% & PGD vulnérable \\
-        \midrule
-        \textbf{Notre approche} & \textbf{AT-FGSM} & \textbf{93.1\%} & \textbf{68.1\%} & \textbf{FGSM uniquement} \\
+        \textbf{Notre approche} & \textbf{93.1\%} & \textbf{68.1\%} & \textbf{11 epochs} \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 \textbf{Points forts de notre approche :}
 \begin{itemize}
-    \item Clean accuracy élevée (93.1\%) comparée à Madry (87.3\%)
-    \item FGSM accuracy compétitive (68.1\%) proche de TRADES (70.8\%)
-    \item Temps d'entraînement réduit (11 epochs vs 30+ pour AT-PGD)
-    \item Architecture complète incluant WAF, audit, monitoring (pas seulement le modèle)
-\end{itemize}
-
-\textbf{Limites identifiées :}
-\begin{itemize}
-    \item Adversarial training limité à FGSM uniquement
-    \item Robustesse face aux attaques sophistiquées (PGD, C\&W) non évaluée
-    \item Trade-off robustesse/accuracy significatif (-8.16\%)
+    \item Clean accuracy supérieure (93.1\% vs 87.3-91.2\%)
+    \item FGSM accuracy compétitive (68.1\%) avec temps d'entraînement réduit (11 epochs)
+    \item Architecture complète de production (pas uniquement académique)
+    \item Infrastructure DevSecOps opérationnelle (Docker, CI/CD, monitoring)
 \end{itemize}
 
 \subsection{Positionnement de notre contribution}
 
-Notre travail se distingue des approches existantes par une vision holistique de la sécurité :
+Notre travail se distingue des approches existantes par quatre contributions principales :
 
-\begin{enumerate}
-    \item \textbf{Architecture end-to-end complète} : Contrairement aux travaux académiques focalisés uniquement sur la robustesse du modèle, nous proposons une architecture de production complète avec 5 zones de sécurité (validation d'entrée, adversarial training, validation de sortie, sécurisation des accès, gouvernance).
+\paragraph{1. Intégration holistique}
 
-    \item \textbf{Infrastructure de déploiement sécurisée} : Docker Compose avec WAF, authentification JWT, détection d'anomalies, audit immuable, monitoring temps réel.
+Contrairement aux approches existantes qui se concentrent sur un aspect spécifique (robustesse adversariale OU confidentialité OU DevSecOps), notre architecture à 5 zones intègre simultanément la défense adversariale, la validation multicouche, la sécurisation des accès, et la gouvernance complète.
 
-    \item \textbf{Approche pragmatique} : Trade-off explicite entre robustesse et accuracy acceptable pour un système de production réel (93.1\% clean accuracy avec +36\% de robustesse FGSM).
+\paragraph{2. Adaptation au contexte opérationnel}
 
-    \item \textbf{Extensibilité} : Architecture modulaire permettant l'intégration future de défenses complémentaires (PGD training, certified defenses, ensemble methods).
-\end{enumerate}
-
-
-\section{Discussion des résultats}
-
-\subsection{Efficacité de l'adversarial training FGSM}
-
-Les résultats montrent que l'adversarial training avec FGSM apporte une amélioration significative de +36.3\% sur l'adversarial accuracy FGSM (50\% → 68.1\%), au prix d'une baisse modérée de -4.4\% sur l'accuracy propre (97.5\% → 93.1\%).
-
-\textbf{Trade-off acceptable :} Pour un système de détection d'images malveillantes, sacrifier 4.4\% d'accuracy sur données propres est un compromis raisonnable si cela permet de résister à 68\% des attaques FGSM au lieu de 50\%.
-
-\textbf{Robustness gap réduit de moitié :} Le gap entre clean accuracy et adversarial accuracy passe de 47.5\% (baseline) à 25.0\% (secured), indiquant une meilleure généralisation du modèle sécurisé.
-
-\subsection{Limites de robustesse identifiées}
-
-\textbf{Spécialisation FGSM :} Le modèle sécurisé a été entraîné uniquement avec des exemples adversariaux FGSM ($\epsilon = 0.08$), ce qui crée une spécialisation vers ce type d'attaque. Cette approche présente certaines limites :
+Les frameworks existants (SAIF, MLSecOps) restent génériques. Notre architecture est spécifiquement conçue pour les contraintes des systèmes de détection d'images malveillantes en environnement opérationnel :
 
 \begin{itemize}
-    \item \textbf{Robustesse limitée à FGSM} : L'amélioration de +36.3\% est spécifique aux attaques FGSM. La généralisation à d'autres types d'attaques (PGD, C\&W, DeepFool) n'a pas été évaluée.
-
-    \item \textbf{Trade-off robustesse/accuracy} : Le sacrifice de -8.16\% d'accuracy sur données propres est significatif pour certaines applications critiques.
-
-    \item \textbf{Epsilon d'entraînement fixe} : Le choix de $\epsilon = 0.08$ durant l'entraînement ne couvre qu'une partie de l'espace des perturbations possibles.
+    \item Exigences temps réel (inférence < 100ms)
+    \item Trade-off explicite robustesse/accuracy (93.1\% clean, 68.1\% FGSM)
+    \item Traçabilité et auditabilité complètes (audit immuable avec hash chains)
+    \item Déploiement conteneurisé haute disponibilité (8 services orchestrés)
 \end{itemize}
 
-\textbf{Implications pratiques :} Dans un déploiement réel, l'adversarial training FGSM constitue une première ligne de défense efficace contre les attaques simples, mais devrait être complété par d'autres mécanismes (détection d'anomalies, validation d'entrée, ensemble de modèles) pour une protection complète. Cette limite est abordée dans les perspectives (section 4.7).
+\paragraph{3. Validation empirique complète}
 
-\subsection{Performance de l'infrastructure de sécurité}
+Contrairement aux frameworks conceptuels (Kumar 2020, NIST AI RMF), nous fournissons une implémentation concrète et une évaluation quantitative de l'efficacité de chaque zone de sécurité, avec mesure des métriques réelles sur dataset de 998 images.
 
-Les mécanismes de la Zone 4 (WAF, JWT, détection d'anomalies) ont montré leur efficacité durant les tests :
+\paragraph{4. Approche pragmatique et extensible}
 
-\begin{itemize}
-    \item \textbf{WAF} : 100\% des tentatives de SQL injection et XSS ont été bloquées (tests manuels)
-    \item \textbf{Rate limiting} : Blocage automatique après 100 req/min, empêchant les attaques par force brute
-    \item \textbf{Détection d'anomalies} : 95\% de précision dans l'identification de comportements suspects (tests simulés)
-    \item \textbf{Audit immuable} : 100\% des événements critiques tracés avec hash chain intègre
-\end{itemize}
-
-L'architecture multicouche apporte une défense en profondeur, renforçant la sécurité globale du système au-delà de la seule robustesse adversariale du modèle.
-
-
-\section{Limites et perspectives}
+Architecture modulaire permettant l'intégration progressive de défenses complémentaires (PGD training, certified defenses, differential privacy) sans refonte complète du système.
 
 \subsection{Limites identifiées}
 
+Malgré les résultats prometteurs, notre approche présente certaines limitations qui doivent être prises en compte :
+
 \paragraph{1. Robustesse limitée aux attaques FGSM}
 
-L'adversarial training utilisé se focalise uniquement sur les attaques FGSM. La robustesse face à d'autres types d'attaques plus sophistiquées (PGD, C\&W, AutoAttack) n'a pas été évaluée. L'adversarial training FGSM seul ne garantit pas une robustesse généralisée à tous les types d'attaques adversariales.
+L'adversarial training utilisé se focalise uniquement sur les attaques FGSM ($\epsilon = 0.08$). Cette spécialisation présente des limites :
 
-\paragraph{2. Dataset de petite taille}
+\begin{itemize}
+    \item \textbf{Généralisation non garantie} : L'amélioration de +36.3\% est spécifique aux attaques FGSM. La robustesse face aux attaques plus sophistiquées (PGD, C\&W, AutoAttack) n'a pas été évaluée.
+    \item \textbf{Trade-off robustesse/accuracy} : Le sacrifice de -8.16\% d'accuracy sur données propres (97.6\% → 89.5\% meilleure val accuracy) est significatif.
+    \item \textbf{Epsilon d'entraînement fixe} : Le choix de $\epsilon = 0.08$ durant l'entraînement ne couvre qu'une partie de l'espace des perturbations possibles.
+\end{itemize}
 
-Le dataset d'entraînement final (998 images après quarantaine) est limité. Un dataset plus large permettrait d'améliorer la généralisation et la robustesse.
+\textbf{Implications pratiques :} L'adversarial training FGSM constitue une première ligne de défense efficace contre les attaques simples, mais devrait être complété par d'autres mécanismes (détection d'anomalies Zone 3, validation d'entrée Zone 1) pour une protection complète.
+
+\paragraph{2. Dataset de taille limitée}
+
+Le dataset d'entraînement final (998 images après quarantaine) est limité. Un dataset plus large (10k+ images) permettrait d'améliorer la généralisation et la robustesse.
 
 \paragraph{3. Modèle léger (MobileNetV2)}
 
-MobileNetV2 a été choisi pour sa rapidité d'inférence, mais des architectures plus lourdes (ResNet50, EfficientNet) pourraient offrir une meilleure robustesse au prix de latence accrue.
+MobileNetV2 a été choisi pour sa rapidité d'inférence (<100ms), mais des architectures plus lourdes (ResNet50, EfficientNet) pourraient offrir une meilleure robustesse au prix de latence accrue (200-300ms).
 
 \paragraph{4. Absence de certified defenses}
 
-Notre approche ne fournit pas de garanties formelles de robustesse (certified radius). Des méthodes comme Randomized Smoothing pourraient apporter des garanties probabilistes.
+Notre approche ne fournit pas de garanties formelles de robustesse (certified radius $\ell_2$ ou $\ell_\infty$). Des méthodes comme Randomized Smoothing ou IBP (Interval Bound Propagation) pourraient apporter des garanties probabilistes.
 
 \paragraph{5. Tests limités en conditions réelles}
 
-Les tests ont été effectués en environnement contrôlé. Une évaluation sur du trafic réel avec attaquants adversariaux serait nécessaire pour valider l'efficacité en production.
+Les tests ont été effectués en environnement contrôlé (dataset statique). Une évaluation sur du trafic réel avec attaquants adversariaux adaptatifs serait nécessaire pour valider l'efficacité en production.
+
+\paragraph{6. Coût d'entraînement avec multi-attaques}
+
+La combinaison adversarial training + differential privacy multiplierait le temps d'entraînement par ~8x selon la littérature. Des techniques d'optimisation (early stopping adaptatif, adversarial replay buffer) seraient nécessaires.
 
 \subsection{Perspectives d'amélioration}
+
+Les limites identifiées ouvrent plusieurs perspectives de recherche et d'amélioration :
 
 \paragraph{1. Adversarial training multi-attaques}
 
@@ -434,39 +455,31 @@ def train_multi_attack(self, data, target):
     total_loss.backward()
 \end{lstlisting}
 
-\textbf{Gain attendu :} Amélioration de la robustesse généralisée face à différents types d'attaques, avec une robustesse adversariale de ~50-60\% selon la littérature (Madry et al., 2018).
+\textbf{Gain attendu :} Robustesse généralisée de ~50-60\% contre multiple attaques selon Madry et al. (2018).
 
 \paragraph{2. Ensemble de modèles défensifs}
 
-Combiner plusieurs modèles (baseline, FGSM-trained, PGD-trained) via vote majoritaire pour augmenter la robustesse.
+Combiner plusieurs modèles (baseline, FGSM-trained, PGD-trained) via vote majoritaire pour augmenter la robustesse globale tout en maintenant la clean accuracy.
 
-\paragraph{3. Détection d'attaques adversariales}
+\paragraph{3. Détection d'attaques adversariales en amont}
 
-Implémenter un détecteur d'adversariales en amont (Feature Squeezing, Detector Network) pour rejeter les inputs suspects avant inférence.
+Implémenter un détecteur d'adversariales dans la Zone 1 (Feature Squeezing, Detector Network, MagNet) pour rejeter les inputs suspects avant inférence.
 
 \paragraph{4. Differential Privacy en production}
 
-Activer Opacus durant l'entraînement pour garantir la confidentialité du dataset et éviter les attaques d'extraction de modèle.
+Activer Opacus durant l'entraînement pour garantir la confidentialité du dataset ($\epsilon$-DP avec $\epsilon = 3.0$) et éviter les attaques d'extraction de modèle (membership inference, model inversion).
 
-\paragraph{5. Tests d'intrusion automatisés}
+\paragraph{5. Tests d'intrusion automatisés continus}
 
-Déployer un framework d'attaques continu (AutoAttack, RobustBench) en CI/CD pour valider la robustesse à chaque modification du modèle.
+Déployer un framework d'attaques continu (AutoAttack, RobustBench) en CI/CD pour valider la robustesse à chaque modification du modèle et détecter les régressions.
+
+\paragraph{6. Certified defenses avec garanties formelles}
+
+Intégrer Randomized Smoothing pour obtenir des garanties probabilistes de robustesse certifiée (certified radius $r$ avec confiance $\alpha = 0.95$).
 
 
 \section{Conclusion du chapitre}
 
-Ce chapitre a présenté les résultats expérimentaux de notre système de détection d'images malveillantes sécurisé. Les principaux enseignements sont :
+Ce chapitre a présenté les résultats expérimentaux de notre système de détection d'images malveillantes sécurisé. L'infrastructure Docker multicouche a été déployée avec succès en environnements de développement et de production, orchestrant 8 services interconnectés. Le modèle sécurisé entraîné avec adversarial training FGSM démontre une amélioration significative de la robustesse adversariale tout en maintenant une accuracy élevée sur données propres. Les interfaces utilisateur, la documentation API interactive, et les dashboards de monitoring temps réel illustrent la faisabilité d'un déploiement en production. 
 
-\begin{itemize}
-    \item \textbf{Infrastructure opérationnelle} : Déploiement réussi d'une architecture Docker multicouche (dev + prod) avec 8 services interconnectés
-
-    \item \textbf{Amélioration FGSM significative} : +36.3\% de robustesse adversariale FGSM avec un trade-off raisonnable de -4.4\% d'accuracy propre
-
-    \item \textbf{Robustesse FGSM spécifique} : Amélioration significative sur FGSM, mais robustesse généralisée non évaluée
-
-    \item \textbf{Sécurité multicouche efficace} : WAF, JWT, détection d'anomalies, et audit immuable fonctionnels et testés
-
-    \item \textbf{Positionnement compétitif} : Clean accuracy supérieure à Madry (93.1\% vs 87.3\%), FGSM accuracy compétitive (68.1\%)
-\end{itemize}
-
-Les interfaces utilisateur et les dashboards de monitoring démontrent la faisabilité d'un déploiement en production. Les limites identifiées (robustesse généralisée, dataset, certified defenses) ouvrent des perspectives d'amélioration pour des travaux futurs.
+Malgré ces résultats prometteurs, plusieurs limites ont été identifiées. L'adversarial training se limite aux attaques FGSM, la robustesse face à des attaques plus sophistiquées n'ayant pas été évaluée. Le dataset d'entraînement reste de taille modeste et l'architecture MobileNetV2 privilégie la rapidité à la robustesse maximale. L'absence de certified defenses et les tests en environnement contrôlé appellent à des validations complémentaires. Des perspectives d'amélioration ont été proposées afin que cette architecture puisse évoluer vers une solution de sécurité ML plus complète et robuste.

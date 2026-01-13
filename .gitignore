@@ -10,29 +10,6 @@ venv/
 env/
 ENV/
 
-# Models
-*.pth
-*.pt
-*.h5
-*.onnx
-models/pretrained/*
-models/baseline/*
-models/secured/*
-
-# Data
-data/raw/*
-data/processed/*
-data/poisoned/*
-*.zip
-*.tar.gz
-
-# Results
-results/*/metrics/*
-results/*/predictions/*
-results/*/logs/*
-*.csv
-*.json
-
 # IDE
 .vscode/
 .idea/
@@ -41,7 +18,6 @@ results/*/logs/*
 .DS_Store
 
 # Docker
-*.log
 .dockerignore
 
 # Testing
@@ -57,7 +33,7 @@ htmlcov/
 tmp/
 temp/
 *.tmp
- 
+
 
 # null files
 nul

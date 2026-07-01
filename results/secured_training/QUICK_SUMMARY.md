@@ -35,16 +35,16 @@ Méthode:             DBSCAN clustering sur features MobileNetV2
 
 ---
 
-## 📊 Comparaison avec Baseline
+## 📊 Résultats de Robustesse (Secured)
 
-| Métrique | Baseline | Secured | Δ |
-|----------|----------|---------|---|
-| Clean Accuracy | ~96% | **89.46%** | **-6.54%** |
-| Robustesse FGSM | ~50% | **À tester** | **?** |
-| Robustesse PGD | ~30% | **À tester** | **?** |
-| Training Time | 40 min | 50 min | +10 min |
+| Métrique | Référence (non sécurisé) | Secured | Δ |
+|----------|--------------------------|---------|---|
+| Clean Accuracy | ~95.59% | **89.46%** | **-6.13%** |
+| Robustesse FGSM | ~26.8% | **À tester** | **?** |
+| Robustesse PGD | ~46.7% | **À tester** | **?** |
+| Training Time | — | 50 min | — |
 
-**Trade-off**: -6.5% clean accuracy pour **+25-35% robustesse** (attendu)
+**Trade-off**: -6.1% clean accuracy pour +25-35% robustesse attendue
 
 ---
 

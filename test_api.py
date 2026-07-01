@@ -30,28 +30,27 @@ def test_api():
         print(f"Health check failed: {e}")
         return
 
-    # Test avec image
-    for model in ["baseline", "secured"]:
-        try:
-            print(f"\nTest modele {model}...")
+    # Test avec image (modèle sécurisé uniquement)
+    try:
+        print(f"\nTest modele secured...")
 
-            # Créer une image de test
-            test_image = create_test_image()
+        # Créer une image de test
+        test_image = create_test_image()
 
-            files = {"file": ("test.png", test_image, "image/png")}
-            response = requests.post(f"{base_url}/predict/{model}", files=files)
+        files = {"file": ("test.png", test_image, "image/png")}
+        response = requests.post(f"{base_url}/predict", files=files)
 
-            if response.status_code == 200:
-                result = response.json()
-                print(f"Prediction: {result['prediction']}")
-                print(f"   Confiance: {result['confidence']}")
-                print(f"   Temps: {result['processing_time_ms']}ms")
-                print(f"   Image: {result['image_info']['size']}")
-            else:
-                print(f"Erreur: {response.status_code} - {response.text}")
+        if response.status_code == 200:
+            result = response.json()
+            print(f"Prediction: {result['prediction']}")
+            print(f"   Confiance: {result['confidence']}")
+            print(f"   Temps: {result['processing_time_ms']}ms")
+            print(f"   Image: {result['image_info']['size']}")
+        else:
+            print(f"Erreur: {response.status_code} - {response.text}")
 
-        except Exception as e:
-            print(f"Test {model} failed: {e}")
+    except Exception as e:
+        print(f"Test secured failed: {e}")
 
     print("\nTests termines!")
 

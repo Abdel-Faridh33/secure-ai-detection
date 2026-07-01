@@ -77,46 +77,6 @@ def analyze_overfitting(history):
     }
 
 
-def compare_with_baseline(secured_history):
-    """Compare avec le baseline"""
-
-    baseline_path = Path("models/baseline/training_history.json")
-
-    if not baseline_path.exists():
-        print("\n⚠️ Baseline history not found, skipping comparison")
-        return
-
-    with open(baseline_path, 'r') as f:
-        baseline_history = json.load(f)
-
-    print("\n" + "="*70)
-    print("COMPARAISON BASELINE VS SECURED")
-    print("="*70)
-
-    baseline_best_val = max(baseline_history['val_acc'])
-    secured_best_val = max(secured_history['val_acc'])
-
-    baseline_final_train = baseline_history['train_acc'][-1]
-    secured_final_train = secured_history['train_acc'][-1]
-
-    baseline_overfitting = baseline_final_train - max(baseline_history['val_acc'])
-    secured_overfitting = secured_final_train - max(secured_history['val_acc'])
-
-    print(f"\n{'Métrique':<30} {'Baseline':<15} {'Secured':<15} {'Diff':<15}")
-    print("-" * 75)
-    print(f"{'Best Val Acc':<30} {baseline_best_val:<15.2f} {secured_best_val:<15.2f} {secured_best_val - baseline_best_val:<+15.2f}")
-    print(f"{'Final Train Acc':<30} {baseline_final_train:<15.2f} {secured_final_train:<15.2f} {secured_final_train - baseline_final_train:<+15.2f}")
-    print(f"{'Overfitting Gap':<30} {baseline_overfitting:<15.2f} {secured_overfitting:<15.2f} {secured_overfitting - baseline_overfitting:<+15.2f}")
-
-    print(f"\nATTENDU pour adversarial training:")
-    print(f"  Val Acc:  90-95% (obtenu: {secured_best_val:.1f}%)")
-    print(f"  Overfitting: 5-10% (obtenu: {secured_overfitting:.1f}%)")
-
-    if secured_best_val < baseline_best_val - 15:
-        print(f"\n🔴 PROBLÈME: Secured est {baseline_best_val - secured_best_val:.1f}% PIRE que baseline!")
-        print(f"   Adversarial training devrait donner -3 à -5%, pas -{baseline_best_val - secured_best_val:.1f}%")
-
-
 def identify_problems(history, diagnostics):
     """Identifie les problèmes potentiels"""
 
@@ -286,9 +246,6 @@ def main():
 
     # Analyser l'overfitting
     diagnostics = analyze_overfitting(history)
-
-    # Comparer avec baseline
-    compare_with_baseline(history)
 
     # Identifier les problèmes
     identify_problems(history, diagnostics)

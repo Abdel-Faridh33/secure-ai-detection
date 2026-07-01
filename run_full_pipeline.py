@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Pipeline complet d'entraînement et d'évaluation
-Exécute toutes les étapes du projet de A à Z
+Pipeline d'entraînement du modèle sécurisé
+Exécute la préparation des données et l'entraînement du modèle sécurisé (Zone 1 + Zone 2)
 """
 
 import os
@@ -19,22 +19,14 @@ if sys.platform == 'win32':
 
 
 class PipelineRunner:
-    """Exécute le pipeline complet"""
+    """Exécute le pipeline d'entraînement sécurisé"""
 
     def __init__(self):
         self.root_dir = Path(__file__).parent
-        self.steps = []
         self.current_step = 0
 
     def run_command(self, cmd: str, description: str, timeout: int = None):
-        """
-        Exécute une commande
-
-        Args:
-            cmd: Commande à exécuter
-            description: Description de l'étape
-            timeout: Timeout en secondes (None = pas de timeout)
-        """
+        """Exécute une commande shell avec affichage de progression."""
         self.current_step += 1
         print("\n" + "="*80)
         print(f"ÉTAPE {self.current_step}: {description}")
@@ -72,20 +64,11 @@ class PipelineRunner:
         print("VÉRIFICATION DES PRÉREQUIS")
         print("="*80)
 
-        # Vérifier Python
         print(f"\n✓ Python: {sys.version}")
 
-        # Vérifier les packages nécessaires
         required_packages = [
-            'torch',
-            'torchvision',
-            'numpy',
-            'PIL',
-            'sklearn',
-            'scipy',
-            'matplotlib',
-            'seaborn',
-            'tqdm'
+            'torch', 'torchvision', 'numpy', 'PIL',
+            'sklearn', 'scipy', 'matplotlib', 'seaborn', 'tqdm'
         ]
 
         missing = []
@@ -102,7 +85,6 @@ class PipelineRunner:
             print("Installez-les avec: pip install torch torchvision numpy pillow scikit-learn scipy matplotlib seaborn tqdm")
             return False
 
-        # Vérifier les données sources
         raw_dir = self.root_dir / "raw" / "Images"
         if not raw_dir.exists():
             print(f"\n❌ Dossier raw/Images/ introuvable")
@@ -117,28 +99,22 @@ class PipelineRunner:
         return True
 
     def run_full_pipeline(self, skip_dataset: bool = False):
-        """
-        Lance le pipeline complet
-
-        Args:
-            skip_dataset: Si True, ne pas régénérer le dataset
-        """
+        """Lance le pipeline complet: dataset → entraînement sécurisé → évaluation robustesse."""
         print("\n" + "="*80)
-        print("🚀 DÉMARRAGE DU PIPELINE COMPLET")
+        print("🚀 DÉMARRAGE DU PIPELINE SÉCURISÉ")
         print("="*80)
 
         start_total = time.time()
 
-        # Vérifier les prérequis
         if not self.check_requirements():
             print("\n❌ Prérequis non satisfaits. Pipeline interrompu.")
             return False
 
-        # Étape 1: Préparation du dataset (optionnel)
+        # Étape 1: Préparation du dataset
         if not skip_dataset:
             if not self.run_command(
                 "python data/prepare_dataset.py",
-                "Préparation du dataset avec augmentation",
+                "Préparation du dataset avec vérification Zone 1",
                 timeout=3600
             ):
                 print("\n❌ Échec de la préparation du dataset")
@@ -146,47 +122,36 @@ class PipelineRunner:
         else:
             print("\n⏭️  Étape de préparation du dataset ignorée")
 
-        # Étape 2: Entraînement Baseline
-        if not self.run_command(
-            "python src/experiments/baseline/train_mobilenet.py",
-            "Entraînement du modèle Baseline (MobileNetV2)",
-            timeout=7200
-        ):
-            print("\n❌ Échec de l'entraînement Baseline")
-            return False
-
-        # Étape 3: Entraînement Secured
+        # Étape 2: Entraînement sécurisé (Zone 1 + Zone 2 intégrés)
         if not self.run_command(
             "python src/experiments/secured/train_mobilenet_secured.py",
-            "Entraînement du modèle Secured (TRADES)",
+            "Entraînement sécurisé (adversarial training FGSM+PGD, chiffrement AES-256-GCM, signature RSA-4096)",
             timeout=10800
         ):
-            print("\n❌ Échec de l'entraînement Secured")
+            print("\n❌ Échec de l'entraînement sécurisé")
             return False
 
-        # Étape 4: Évaluation comparative
+        # Étape 3: Évaluation de la robustesse adversariale
         if not self.run_command(
-            "python src/experiments/comparative/evaluate_models.py",
-            "Évaluation comparative des modèles",
+            "python src/experiments/secured/attack_secured.py",
+            "Évaluation robustesse adversariale (FGSM ε=0.08, PGD 3 iterations)",
             timeout=1800
         ):
-            print("\n❌ Échec de l'évaluation")
+            print("\n❌ Échec de l'évaluation de robustesse")
             return False
 
-        # Pipeline terminé
         elapsed_total = time.time() - start_total
         hours = int(elapsed_total // 3600)
         minutes = int((elapsed_total % 3600) // 60)
         seconds = int(elapsed_total % 60)
 
         print("\n" + "="*80)
-        print("✅ PIPELINE COMPLET TERMINÉ")
+        print("✅ PIPELINE SÉCURISÉ TERMINÉ")
         print("="*80)
         print(f"\nTemps total: {hours}h {minutes}m {seconds}s")
         print("\n📂 Résultats disponibles dans:")
-        print("  - models/baseline/")
         print("  - models/secured/")
-        print("  - results/comparative/")
+        print("  - results/secured_robustness/")
         print("\n🎉 Succès!")
 
         return True
@@ -197,7 +162,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Pipeline complet d'entraînement et d'évaluation"
+        description="Pipeline d'entraînement du modèle sécurisé"
     )
     parser.add_argument(
         '--skip-dataset',
@@ -206,7 +171,7 @@ def main():
     )
     parser.add_argument(
         '--step',
-        choices=['dataset', 'baseline', 'secured', 'evaluate', 'all'],
+        choices=['dataset', 'secured', 'evaluate', 'all'],
         default='all',
         help="Exécuter une étape spécifique"
     )
@@ -216,38 +181,26 @@ def main():
     runner = PipelineRunner()
 
     if args.step == 'all':
-        # Pipeline complet
         success = runner.run_full_pipeline(skip_dataset=args.skip_dataset)
 
     elif args.step == 'dataset':
-        # Seulement dataset
         success = runner.run_command(
             "python data/prepare_dataset.py",
             "Préparation du dataset",
             timeout=3600
         )
 
-    elif args.step == 'baseline':
-        # Seulement baseline
-        success = runner.run_command(
-            "python src/experiments/baseline/train_mobilenet.py",
-            "Entraînement Baseline",
-            timeout=7200
-        )
-
     elif args.step == 'secured':
-        # Seulement secured
         success = runner.run_command(
             "python src/experiments/secured/train_mobilenet_secured.py",
-            "Entraînement Secured",
+            "Entraînement sécurisé",
             timeout=10800
         )
 
     elif args.step == 'evaluate':
-        # Seulement évaluation
         success = runner.run_command(
-            "python src/experiments/comparative/evaluate_models.py",
-            "Évaluation comparative",
+            "python src/experiments/secured/attack_secured.py",
+            "Évaluation robustesse adversariale",
             timeout=1800
         )
 

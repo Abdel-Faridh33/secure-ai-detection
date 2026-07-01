@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests rapides pour les modules de sécurité
 Zone 4 - Production Security
 
@@ -141,8 +141,8 @@ def test_anomaly_detection():
     for i in range(5):
         result = detector.analyze_request(
             ip=test_ip,
-            endpoint="/predict/baseline",
-            model_type="baseline",
+            endpoint="/predict",
+            model_type="secured",
             prediction="safe",
             confidence=0.85,
             status_code=200
@@ -170,7 +170,7 @@ def test_anomaly_detection():
     for i in range(12):  # Plus de 10 échecs = anomalie
         result = detector.analyze_request(
             ip=fail_ip,
-            endpoint="/predict/baseline",
+            endpoint="/predict",
             status_code=400  # Échec
         )
 

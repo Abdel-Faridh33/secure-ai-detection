@@ -1,4 +1,4 @@
-# 📋 RÉCAPITULATIF DES ILLUSTRATIONS DE CODE - CHAPITRE 4
+﻿# 📋 RÉCAPITULATIF DES ILLUSTRATIONS DE CODE - CHAPITRE 4
 
 **Date de création** : 21 octobre 2025
 **Projet** : Secure AI Detection - Proof of Concept ResNet50
@@ -19,7 +19,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 | Fichier | Taille | Extraits de code | Description |
 |---------|--------|------------------|-------------|
 | `Chapitre_4_1_Presentation_PoC.md` | ~12 KB | 3 références | Présentation PoC + choix ResNet50 |
-| `Chapitre_4_2_Evaluation_Vulnerabilites_avec_code.md` | ~35 KB | **15+ extraits** | Évaluation baseline avec code |
+| `Chapitre_4_2_Evaluation_Vulnerabilites_avec_code.md` | ~35 KB | **15+ extraits** | Évaluation vulnérabilités modèle de référence |
 | `Chapitre_4_3_Implementation_Securisation_avec_code.md` | ~45 KB | **20+ extraits** | Implémentation TRADES avec code |
 | `Chapitre_4_4_Analyse_Resultats.md` | ~25 KB | Tableaux + code validation | Analyse résultats comparatifs |
 
@@ -34,7 +34,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 #### 4.2.1 Dataset expérimental
 
 **Extrait 1 : Classe `DangerousObjectDataset`**
-- **Fichier source** : `src/experiments/baseline/train_baseline.py` (lignes 36-136)
+- **Fichier source** : `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]` (lignes 36-136)
 - **Concept illustré** : Chargement personnalisé de données PyTorch
 - **Code** :
   ```python
@@ -44,8 +44,8 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
   ```
 
 **Extrait 2 : Transformations de base**
-- **Fichier source** : `src/experiments/baseline/train_baseline.py` (lignes 138-189)
-- **Concept** : Data augmentation baseline
+- **Fichier source** : `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]` (lignes 138-189)
+- **Concept** : Data augmentation de base
 - **Transformations** : Resize, RandomFlip, Rotation, ColorJitter, Normalisation ImageNet
 
 **Extrait 3 : Augmentation avancée (4 niveaux)**
@@ -60,7 +60,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 #### 4.2.2 Métriques d'évaluation
 
 **Extrait 5 : Fonction `validate()`**
-- **Fichier source** : `src/experiments/baseline/train_baseline.py` (lignes 265-322)
+- **Fichier source** : `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]` (lignes 265-322)
 - **Concept** : Calcul accuracy, precision, recall, F1, confusion matrix
 - **Bibliothèques** : scikit-learn metrics
 
@@ -69,15 +69,15 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 - **Méthode** : `evaluate_robustness()`
 - **Métriques** : Clean accuracy, Robust accuracy, ASR, Robustness degradation
 
-#### 4.2.3 Protocole de test Baseline
+#### 4.2.3 Protocole de test du modèle de référence (non sécurisé)
 
-**Extrait 7 : Fonction `train_baseline()`**
-- **Fichier source** : `src/experiments/baseline/train_baseline.py` (lignes 324-461)
-- **Concept** : Entraînement standard transfer learning
+**Extrait 7 : Fonction d'entraînement de référence (non sécurisé)**
+- **Fichier source** : `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]` (lignes 324-461)
+- **Concept** : Entraînement standard transfer learning (modèle de référence)
 - **Composants** : DataLoader, Loss, Optimizer, Scheduler, Early stopping
 
 **Extrait 8 : Boucle d'entraînement `train_epoch()`**
-- **Fichier source** : `src/experiments/baseline/train_baseline.py` (lignes 191-263)
+- **Fichier source** : `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]` (lignes 191-263)
 - **Étapes** : Forward → Loss → Backward → Optimizer step
 
 **Extrait 9 : Attaque FGSM**
@@ -90,7 +90,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 - **Algorithme** : Initialisation aléatoire + 10 itérations PGD
 - **Projection** : L∞-ball clipping
 
-#### 4.2.4 Résultats vulnérabilité Baseline
+#### 4.2.4 Résultats vulnérabilité du modèle de référence
 
 **Extrait 11 : Pipeline d'évaluation complète**
 - **Pseudo-code** illustrant : Clean Test → FGSM → PGD → PGD Strong
@@ -102,7 +102,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 **Extrait 12 : Certification de sécurité**
 - **Fonction** : `certify_model_security()`
 - **Grille** : Seuils clean≥95%, FGSM≥80%, PGD≥80%
-- **Verdict Baseline** : Grade C (2/3 critères), NOT production-ready
+- **Verdict Référence** : Grade C (2/3 critères), NOT production-ready
 
 ---
 
@@ -228,12 +228,11 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 *(Note: Cette section contient principalement des tableaux comparatifs et analyses qualitatives, moins d'extraits de code directs)*
 
 **Extrait 29 : Fonction de validation comparative**
-- **Concept** : Évaluation Baseline vs Secured sur même test set
-- **Métriques** : Clean, FGSM, PGD, PGD Strong pour les deux modèles
+- **Concept** : Évaluation du modèle sécurisé sur même test set que la référence\n- **Métriques** : Clean, FGSM, PGD, PGD Strong
 
 **Extrait 30 : Visualisation vulnérabilités**
 - **Fonction** : `visualize_pgd_vulnerability()`
-- **Concept** : Affichage exemples compromis par PGD (baseline uniquement)
+- **Concept** : Affichage exemples compromis par PGD (modèle de référence non sécurisé)
 
 ---
 
@@ -265,7 +264,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 
 | Fichier source | Nombre d'extraits | Lignes totales utilisées |
 |----------------|------------------|-------------------------|
-| `train_baseline.py` | 7 | ~280 |
+| `train_mobilenet_secured.py` (extraits 4.2) | 7 | ~280 |
 | `train_adversarial_robust.py` | 10 | ~450 |
 | `data_augmentation.py` | 5 | ~200 |
 | `pgd.py` | 6 | ~150 |
@@ -283,7 +282,7 @@ Le chapitre 4 du mémoire a été enrichi avec **des extraits de code réels du 
 ✅ Augmentation avancée (4 niveaux)
 ✅ Génération dataset augmenté (70 → 1024 images)
 
-### Entraînement Baseline
+### Entraînement du modèle de référence (non sécurisé)
 ✅ Transfer learning ResNet50
 ✅ Boucle d'entraînement standard
 ✅ Early stopping
@@ -328,7 +327,7 @@ class DangerousObjectDataset(Dataset):
 
 2. **Référencer le fichier source** en note de bas de page :
 ```latex
-\footnote{Extrait de \texttt{src/experiments/baseline/train\_baseline.py}, lignes 36-136}
+\footnote{Extrait de \texttt{src/experiments/secured/train\_mobilenet\_secured.py}, section évaluation modèle de référence}
 ```
 
 3. **Ajouter des commentaires explicatifs** directement dans le code :
@@ -343,7 +342,7 @@ clean_loss = self.criterion(clean_output, target)
 5. **Utiliser des figures pour les résultats** :
    - Graphiques de convergence
    - Matrices de confusion
-   - Comparaisons visuelles baseline vs secured
+   - Comparaisons visuelles modèle de référence vs sécurisé
 
 ### Longueur recommandée des extraits
 
@@ -384,7 +383,7 @@ Recommandation pour le chapitre 4 :
 
 ### Fichiers de code source à référencer
 
-1. `src/experiments/baseline/train_baseline.py`
+1. `src/experiments/secured/train_mobilenet_secured.py [archive: évaluation modèle non sécurisé]`
 2. `src/experiments/secured/train_adversarial_robust.py`
 3. `src/defenses/training/data_augmentation.py`
 4. `src/attacks/adversarial/pgd.py`
@@ -392,7 +391,7 @@ Recommandation pour le chapitre 4 :
 
 ### Résultats et rapports
 
-1. `COMPARAISON_BASELINE_VS_ROBUSTE.md`
+1. `VALIDATION_FINALE_COMPLETE.md`
 2. `VALIDATION_FINALE_COMPLETE.md`
 3. `results/adversarial_robust/adversarial_robust_report_*.json`
 
@@ -409,7 +408,7 @@ Le chapitre 4 du mémoire est maintenant **entièrement illustré avec du code r
 
 **Total** : **~40 extraits de code**, **~1200 lignes** illustrant :
 - Dataset augmenté (14.6× augmentation)
-- Entraînement baseline (vulnérable)
+- Entraînement du modèle de référence (non sécurisé)
 - Adversarial training avec PGD
 - Évaluation robustesse multi-attacks
 - Résultats exceptionnels (zero robustness gap)

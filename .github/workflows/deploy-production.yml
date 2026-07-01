@@ -58,16 +58,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Build baseline API
-        run: docker build -f docker/Dockerfile.baseline -t secure-ai-baseline:latest .
-
       - name: Build secured API
         run: docker build -f docker/Dockerfile.secured -t secure-ai-secured:latest .
 
-      - name: Test images
-        run: |
-          docker run --rm secure-ai-baseline:latest python -c "import fastapi, torch; print('OK')"
-          docker run --rm secure-ai-secured:latest python -c "import fastapi, torch, opacus; print('OK')"
+      - name: Test image
+        run: docker run --rm secure-ai-secured:latest python -c "import fastapi, torch, opacus; print('OK')"
 
   deploy:
     name: Deploy to Production
@@ -89,11 +84,8 @@ jobs:
       - name: Wait for Redis
         run: timeout 60 bash -c 'until docker exec secure-ai-redis-prod1 redis-cli ping; do sleep 2; done'
 
-      - name: Wait for Baseline API
-        run: timeout 60 bash -c 'until curl -sf http://localhost:8001/health; do sleep 2; done'
-
-      - name: Wait for Secured API
-        run: timeout 60 bash -c 'until curl -sf http://localhost:8002/health; do sleep 2; done'
+      - name: Wait for Secured API (via Nginx)
+        run: timeout 60 bash -c 'until curl -sfk https://localhost/health; do sleep 2; done'
 
       - name: Verify all containers
         run: |
@@ -111,14 +103,8 @@ jobs:
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y curl jq
 
-      - name: Test Baseline API
-        run: curl -sf http://localhost:8001/health
-
-      - name: Test Secured API
-        run: curl -sf http://localhost:8002/health
-
-      - name: Test Web Interface
-        run: curl -sf http://localhost:8080
+      - name: Test Secured API health
+        run: curl -sfk https://localhost/health
 
       - name: Test Prometheus
         run: curl -sf http://localhost:9090/-/healthy
@@ -156,9 +142,7 @@ jobs:
         if: needs.smoke-tests.result == 'success'
         run: |
           echo "=== DEPLOYMENT SUCCESSFUL ==="
-          echo "Baseline API: http://localhost:8001"
-          echo "Secured API: http://localhost:8002"
-          echo "Web Interface: http://localhost:8080"
+          echo "Secured API (via Nginx): https://localhost"
           echo "Grafana: http://localhost:3000"
           echo "Prometheus: http://localhost:9090"
 

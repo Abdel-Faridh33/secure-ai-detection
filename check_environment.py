@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Script de vérification de l'environnement
-Vérifie que tout est prêt pour l'entraînement
+Vérifie que tout est prêt pour l'entraînement du modèle sécurisé
 """
 
 import os
@@ -87,7 +87,6 @@ def check_cuda():
             print(f"  CUDA version: {torch.version.cuda}")
             print(f"  Nombre de GPUs: {torch.cuda.device_count()}")
 
-            # Test mémoire GPU
             try:
                 total_mem = torch.cuda.get_device_properties(0).total_memory / 1e9
                 print(f"  Mémoire GPU: {total_mem:.1f} GB")
@@ -102,7 +101,7 @@ def check_cuda():
         else:
             print("  ⚠️  CUDA non disponible - Utilisation CPU")
             print("      Entraînement sera plus lent (~5-10x)")
-            print("      Temps estimé: 7-13h pour tout le pipeline")
+            print("      Temps estimé: 4-8h pour le modèle sécurisé")
             return False
     except:
         print("  ❌ Impossible de vérifier CUDA")
@@ -114,7 +113,6 @@ def check_dataset():
     print("\n📌 Dataset")
     print("-" * 40)
 
-    # Vérifier raw data
     raw_dir = Path("raw/Images")
     if not raw_dir.exists():
         print("  ❌ raw/Images/ introuvable")
@@ -123,14 +121,12 @@ def check_dataset():
     raw_count = len(list(raw_dir.glob("*.jpg"))) + len(list(raw_dir.glob("*.png")))
     print(f"  ✅ Images sources: {raw_count}")
 
-    # Vérifier prepared data
     prepared_dir = Path("data/prepared")
     if not prepared_dir.exists():
         print("\n  ⚠️  Dataset non préparé")
         print("      Lancez: python data/prepare_dataset.py")
         return False
 
-    # Vérifier les splits
     splits = ['train', 'val', 'test']
     classes = ['safe', 'dangerous']
 
@@ -147,7 +143,6 @@ def check_dataset():
 
     print(f"\n  ✅ Total: {total} images préparées")
 
-    # Vérifier stats
     stats_file = prepared_dir / "dataset_stats.json"
     if stats_file.exists():
         print(f"  ✅ Stats disponibles: {stats_file}")
@@ -184,23 +179,22 @@ def check_disk_space():
 
 def check_scripts():
     """Vérifie que les scripts sont présents"""
-    print("\n📌 Scripts d'Entraînement")
+    print("\n📌 Scripts")
     print("-" * 40)
 
     scripts = {
         'data/prepare_dataset.py': 'Préparation dataset',
-        'src/experiments/baseline/train_mobilenet.py': 'Entraînement baseline',
-        'src/experiments/secured/train_mobilenet_secured.py': 'Entraînement secured',
-        'src/experiments/comparative/evaluate_models.py': 'Évaluation comparative',
+        'src/experiments/secured/train_mobilenet_secured.py': 'Entraînement sécurisé',
+        'src/experiments/secured/attack_secured.py': 'Évaluation robustesse',
         'run_full_pipeline.py': 'Pipeline complet'
     }
 
     all_ok = True
     for script, desc in scripts.items():
         if Path(script).exists():
-            print(f"  ✅ {desc:25s} {script}")
+            print(f"  ✅ {desc:30s} {script}")
         else:
-            print(f"  ❌ {desc:25s} {script} MANQUANT")
+            print(f"  ❌ {desc:30s} {script} MANQUANT")
             all_ok = False
 
     return all_ok
@@ -219,62 +213,50 @@ def estimate_time():
 
     if has_cuda:
         print("  Mode: GPU (CUDA)")
-        print("  • Baseline:    30-60 min")
-        print("  • Secured:      1-2 heures")
-        print("  • Évaluation:  10-20 min")
-        print("  • TOTAL:       ~2-3 heures")
+        print("  • Entraînement sécurisé: 1-2 heures")
+        print("  • Évaluation robustesse: 10-20 min")
+        print("  • TOTAL:                ~1-3 heures")
     else:
         print("  Mode: CPU (pas de GPU)")
-        print("  • Baseline:     2-4 heures")
-        print("  • Secured:      4-8 heures")
-        print("  • Évaluation:  30-40 min")
-        print("  • TOTAL:       ~7-13 heures")
+        print("  • Entraînement sécurisé: 4-8 heures")
+        print("  • Évaluation robustesse: 30-40 min")
+        print("  • TOTAL:                ~5-9 heures")
         print("\n  💡 Recommandation: Utiliser un GPU si possible")
 
 
-def check_models():
-    """Vérifie si des modèles sont déjà entraînés"""
-    print("\n📌 Modèles Entraînés")
+def check_model():
+    """Vérifie si le modèle sécurisé est déjà entraîné"""
+    print("\n📌 Modèle Sécurisé")
     print("-" * 40)
 
-    baseline_model = Path("models/baseline/best_model.pth")
-    secured_model = Path("models/secured/best_model.pth")
+    secured_model = Path("models/secured/best_secured_model.pth")
+    secured_encrypted = Path("models/secured/best_secured_model.enc")
 
-    if baseline_model.exists():
-        size_mb = baseline_model.stat().st_size / (1024**2)
-        print(f"  ✅ Baseline: {baseline_model} ({size_mb:.1f} MB)")
-    else:
-        print(f"  ⏳ Baseline: Pas encore entraîné")
-
-    if secured_model.exists():
+    if secured_encrypted.exists():
+        size_mb = secured_encrypted.stat().st_size / (1024**2)
+        print(f"  ✅ Modèle chiffré (AES-256-GCM): {secured_encrypted} ({size_mb:.1f} MB)")
+    elif secured_model.exists():
         size_mb = secured_model.stat().st_size / (1024**2)
-        print(f"  ✅ Secured:  {secured_model} ({size_mb:.1f} MB)")
+        print(f"  ✅ Modèle entraîné: {secured_model} ({size_mb:.1f} MB)")
     else:
-        print(f"  ⏳ Secured:  Pas encore entraîné")
-
-    if not baseline_model.exists() and not secured_model.exists():
+        print(f"  ⏳ Modèle sécurisé: Pas encore entraîné")
         print("\n  💡 Lancez l'entraînement avec:")
         print("      python run_full_pipeline.py --skip-dataset")
 
 
 def check_results():
-    """Vérifie si des résultats existent"""
-    print("\n📌 Résultats")
+    """Vérifie si des résultats de robustesse existent"""
+    print("\n📌 Résultats de Robustesse")
     print("-" * 40)
 
-    results_dir = Path("results/comparative")
+    results_dir = Path("results/secured_robustness")
 
     if results_dir.exists():
-        report = results_dir / "evaluation_report.txt"
-        plots = results_dir / "comparative_plots.png"
-
-        if report.exists():
-            print(f"  ✅ Rapport: {report}")
-
-        if plots.exists():
-            print(f"  ✅ Graphiques: {plots}")
-
-        if not report.exists() and not plots.exists():
+        files = list(results_dir.glob("*.json"))
+        if files:
+            for f in sorted(files)[-3:]:
+                print(f"  ✅ {f}")
+        else:
             print("  ⏳ Pas encore de résultats")
     else:
         print("  ⏳ Pas encore de résultats")
@@ -283,12 +265,11 @@ def check_results():
 def main():
     """Point d'entrée principal"""
     print("="*80)
-    print("🔍 VÉRIFICATION DE L'ENVIRONNEMENT")
+    print("🔍 VÉRIFICATION DE L'ENVIRONNEMENT - Système de Détection Sécurisé")
     print("="*80)
 
     checks = []
 
-    # Vérifications critiques
     checks.append(("Python", check_python()))
     checks.append(("Packages", check_packages()))
     checks.append(("GPU/CUDA", check_cuda()))
@@ -296,12 +277,10 @@ def main():
     checks.append(("Scripts", check_scripts()))
     checks.append(("Espace disque", check_disk_space()))
 
-    # Informations additionnelles
     estimate_time()
-    check_models()
+    check_model()
     check_results()
 
-    # Résumé
     print("\n" + "="*80)
     print("📊 RÉSUMÉ")
     print("="*80)
@@ -324,11 +303,10 @@ def main():
         print("✅ ENVIRONNEMENT PRÊT POUR L'ENTRAÎNEMENT!")
         print("\n🚀 Commandes pour démarrer:")
         print("  • Pipeline complet:  python run_full_pipeline.py --skip-dataset")
-        print("  • Baseline seul:     python src/experiments/baseline/train_mobilenet.py")
-        print("  • Secured seul:      python src/experiments/secured/train_mobilenet_secured.py")
-        print("  • Évaluation:        python src/experiments/comparative/evaluate_models.py")
+        print("  • Sécurisé seul:     python src/experiments/secured/train_mobilenet_secured.py")
+        print("  • Évaluation:        python src/experiments/secured/attack_secured.py")
 
-        if not checks[2][1]:  # Pas de GPU
+        if not checks[2][1]:
             print("\n⚠️  Note: Pas de GPU détecté - L'entraînement sera lent")
     else:
         print("❌ PROBLÈMES DÉTECTÉS - Corrigez-les avant de continuer")

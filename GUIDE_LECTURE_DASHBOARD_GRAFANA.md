@@ -134,18 +134,13 @@ Montre combien de **prédictions IA par seconde** sont effectuées par chaque mo
 
 **Données actuelles**:
 ```
-Modèle baseline:
-  - 3 prédictions "safe"
-  - 3 prédictions "dangerous"
-
 Modèle secured:
-  - 2 prédictions "safe"
+  - 5 prédictions "safe"
   - 4 prédictions "dangerous"
 ```
 
 ### Interprétation
 **Courbes attendues**:
-- `baseline - Prédictions/sec`: Ligne bleue pour le modèle non sécurisé
 - `secured - Prédictions/sec`: Ligne verte pour le modèle sécurisé
 
 **Ce que vous voyez**:
@@ -166,14 +161,12 @@ Affiche la **précision actuelle** de chaque modèle en temps réel.
 
 **Données actuelles**:
 ```
-Model baseline: 96.08%
 Model secured:  96.08%
 ```
 
 ### Interprétation
 **Ce que vous voyez**:
 - Ligne horizontale à ~96% → Précision stable
-- Les deux modèles ont la même précision → C'est la métrique du **test set**
 - Si la ligne descend soudainement → Dégradation du modèle (data drift, attaque)
 
 **Important**: Cette métrique est mise à jour **au chargement du modèle**, pas à chaque prédiction. Elle reflète la performance sur le jeu de test.
@@ -210,8 +203,7 @@ curl http://localhost:9800/health
 curl -X POST http://localhost:9800/predict \
   -H "Content-Type: application/json" \
   -d '{
-    "image": "iVBORw0KGgoAAAANSUhEUg...",
-    "model_type": "baseline"
+    "image": "iVBORw0KGgoAAAANSUhEUg..."
   }'
 ```
 

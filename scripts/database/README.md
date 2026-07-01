@@ -205,13 +205,13 @@ print(f"Total prédictions: {stats['total_predictions']}")
 print(f"Confiance moyenne: {stats['avg_confidence']:.2f}")
 print(f"Accuracy: {stats['accuracy_rate']:.2%}")
 
-# Comparer deux modèles
-comparison = logger.compare_models(
-    model_a_type="baseline",
-    model_b_type="secured",
+# Analyser la dérive du modèle sécurisé
+drift_stats = logger.get_model_stats(
+    model_type="secured",
+    model_version="latest",
     days=7
 )
-print(f"Delta confiance: {comparison['delta']['confidence']:+.3f}")
+print(f"Confiance moyenne (7j): {drift_stats['avg_confidence']:.3f}")
 
 # Détecter drift du modèle
 drift = logger.detect_model_drift(

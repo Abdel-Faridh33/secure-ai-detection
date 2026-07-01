@@ -556,9 +556,22 @@ class DataVerifier:
             'timestamp': report.timestamp
         }
 
+        # Encodeur pour les types numpy non sérialisables nativement
+        class _NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.bool_):
+                    return bool(obj)
+                if isinstance(obj, (np.integer,)):
+                    return int(obj)
+                if isinstance(obj, (np.floating,)):
+                    return float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return super().default(obj)
+
         # Sauvegarder
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(report_dict, f, indent=2, ensure_ascii=False)
+            json.dump(report_dict, f, indent=2, ensure_ascii=False, cls=_NumpyEncoder)
 
         print(f"\n✓ Rapport sauvegardé: {output_path}")
 

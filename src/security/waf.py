@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from collections import defaultdict
 import re
+import os
 
 class RateLimiter:
     """
@@ -94,18 +95,21 @@ class InputValidator:
 
     # Patterns suspects (injection, XSS, etc.)
     SUSPICIOUS_PATTERNS = [
-        r"<script",           # XSS
-        r"javascript:",       # XSS
-        r"onerror\s*=",      # XSS
-        r"onclick\s*=",      # XSS
-        r"\bSELECT\b.*\bFROM\b",  # SQL Injection
-        r"\bUNION\b.*\bSELECT\b", # SQL Injection
-        r"\bDROP\b.*\bTABLE\b",   # SQL Injection
-        r"\.\./",            # Path traversal
-        r"\.\.\\",           # Path traversal
-        r"/etc/passwd",      # File inclusion
-        r"cmd\.exe",         # Command injection
-        r"bash\s+-c",        # Command injection
+        r"<script",                        # XSS
+        r"javascript:",                    # XSS
+        r"onerror\s*=",                   # XSS
+        r"onclick\s*=",                   # XSS
+        r"SELECT.{0,10}FROM",             # SQL Injection (tolère _, espaces, etc.)
+        r"UNION.{0,10}SELECT",            # SQL Injection
+        r"DROP.{0,10}TABLE",              # SQL Injection
+        r"\.\./",                          # Path traversal Unix
+        r"\.\.[/\\]",                     # Path traversal (Unix + Windows)
+        r"/etc/passwd",                   # File inclusion
+        r"cmd\.exe",                      # Command injection Windows
+        r"bash[\s_+-]",                   # Command injection Unix
+        r"powershell",                    # Command injection Windows
+        r"eval\s*\(",                     # Code injection
+        r"%00",                            # Null byte injection
     ]
 
     @staticmethod
@@ -227,5 +231,6 @@ class WAF:
         return self.rate_limiter.is_blocked(ip)
 
 
-# Instance globale du WAF
-waf = WAF(max_requests=100, window_seconds=60)
+# Instance globale du WAF – seuil configurable via RATE_LIMIT
+_rate_limit = int(os.environ.get("RATE_LIMIT", 100))
+waf = WAF(max_requests=_rate_limit, window_seconds=60)

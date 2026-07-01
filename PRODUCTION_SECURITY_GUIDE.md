@@ -181,8 +181,8 @@ from src.security.anomaly_detector import anomaly_detector
 # Analyser une requête
 result = anomaly_detector.analyze_request(
     ip="10.0.0.50",
-    endpoint="/predict/baseline",
-    model_type="baseline",
+    endpoint="/predict",
+    model_type="secured",
     confidence=0.85,
     status_code=200
 )

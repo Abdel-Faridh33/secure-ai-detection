@@ -157,7 +157,7 @@ class AuditLogger:
         Args:
             image_data: Données binaires de l'image
             image_filename: Nom du fichier image
-            model_type: Type de modèle utilisé (baseline/secured)
+            model_type: Type de modèle utilisé (secured)
             prediction: Résultat de la prédiction (safe/dangerous)
             confidence: Niveau de confiance (0-1)
             processing_time_ms: Temps de traitement en ms

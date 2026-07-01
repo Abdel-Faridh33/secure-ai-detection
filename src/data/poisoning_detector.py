@@ -121,7 +121,7 @@ class PoisoningDetector:
         Construit le feature extractor basé sur MobileNetV2
 
         Note: Utilise MobileNetV2 au lieu de ResNet50 pour cohérence avec
-        l'architecture du projet (baseline et secured utilisent MobileNetV2)
+        l'architecture du projet (MobileNetV2)
 
         Returns:
             nn.Module: Modèle d'extraction de features
@@ -164,7 +164,8 @@ class PoisoningDetector:
 
         # 3. Réduction de dimensionnalité (optionnel)
         if self.use_pca and features.shape[1] > self.pca_components:
-            pca = PCA(n_components=self.pca_components)
+            n_components = min(self.pca_components, features.shape[0] - 1, features.shape[1])
+            pca = PCA(n_components=n_components)
             features_scaled = pca.fit_transform(features_scaled)
             print(f"✓ PCA appliquée: {features_scaled.shape}")
 
@@ -261,7 +262,7 @@ class PoisoningDetector:
                     # Extraire features
                     with torch.no_grad():
                         features = self.feature_extractor(img_tensor)
-                        features = features.squeeze().cpu().numpy()
+                        features = features.squeeze().cpu().numpy().flatten()
 
                     features_list.append(features)
                     file_paths.append(str(img_path))
@@ -451,9 +452,22 @@ class PoisoningDetector:
         # Convertir en dictionnaire
         report_dict = asdict(report)
 
+        # Encodeur pour les types numpy non sérialisables nativement
+        class _NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.bool_):
+                    return bool(obj)
+                if isinstance(obj, (np.integer,)):
+                    return int(obj)
+                if isinstance(obj, (np.floating,)):
+                    return float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return super().default(obj)
+
         # Sauvegarder
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(report_dict, f, indent=2, ensure_ascii=False)
+            json.dump(report_dict, f, indent=2, ensure_ascii=False, cls=_NumpyEncoder)
 
         print(f"✓ Rapport sauvegardé: {output_path}")
 

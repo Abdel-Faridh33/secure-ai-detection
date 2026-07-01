@@ -21,9 +21,9 @@ def create_test_image():
 
     return img_base64
 
-def test_predict(model_type):
-    """Test une prediction"""
-    print(f"\nTest prediction avec model_type={model_type}...")
+def test_predict():
+    """Test une prediction sur le modèle sécurisé"""
+    print(f"\nTest prediction (modèle sécurisé)...")
 
     try:
         # Créer une vraie image PNG
@@ -39,7 +39,7 @@ def test_predict(model_type):
 
         print(f"  Envoi de la requete...")
         response = requests.post(
-            f"{API_URL}/predict/{model_type}",
+            f"{API_URL}/predict",
             files=files,
             timeout=30
         )
@@ -65,17 +65,12 @@ if __name__ == "__main__":
     print("TEST DE L'ENDPOINT /PREDICT")
     print("=" * 60)
 
-    # Test baseline
-    success1 = test_predict("baseline")
-
-    # Test secured
-    success2 = test_predict("secured")
+    # Test modèle sécurisé
+    success1 = test_predict()
 
     print("\n" + "=" * 60)
-    if success1 and success2:
-        print("RESULTAT: OK - Les deux modeles fonctionnent!")
-    elif success1 or success2:
-        print("RESULTAT: PARTIEL - Un seul modele fonctionne")
+    if success1:
+        print("RESULTAT: OK - Le modele sécurisé fonctionne!")
     else:
         print("RESULTAT: ERREUR - Aucun modele ne fonctionne")
     print("=" * 60)

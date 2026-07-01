@@ -90,7 +90,7 @@ docker-compose -f docker-compose.monitoring.yml logs -f
 | **Requests per Second** | Requêtes/sec par endpoint | Temps réel |
 | **Response Time Distribution** | p50, p95, p99 | Temps réel |
 | **HTTP Status Codes** | Distribution des codes HTTP | Temps réel |
-| **Model Accuracy** | Précision Baseline vs Secured | 🟢 >85% 🟡 75-85% 🔴 <75% |
+| **Model Accuracy** | Précision du modèle sécurisé | 🟢 >94% 🟡 85-94% 🔴 <85% |
 | **Predictions Distribution** | Safe vs Dangerous (pie chart) | Temps réel |
 
 **Utilisation** :

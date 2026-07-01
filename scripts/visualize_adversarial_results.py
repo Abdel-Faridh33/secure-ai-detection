@@ -69,7 +69,7 @@ def create_performance_comparison(results: dict, output_path: Path):
 
     # Styling
     ax.set_ylabel('Accuracy (%)', fontsize=13, fontweight='bold')
-    ax.set_title(f'Performance du Modèle Baseline\nAttaque FGSM (ε={results["epsilon"]})',
+    ax.set_title(f'Performance du Modèle Sécurisé\nAttaque FGSM (ε={results["epsilon"]})',
                  fontsize=15, fontweight='bold', pad=20)
     ax.set_ylim(0, 105)
     ax.grid(axis='y', alpha=0.3, linestyle='--')
@@ -245,7 +245,7 @@ def create_summary_table(results: dict, output_path: Path):
             if 'ROBUSTE' in str(row[1]):
                 cell.set_text_props(weight='bold', color='green')
 
-    ax.set_title('Résumé des Tests Adversariaux - Modèle Baseline MobileNetV2',
+    ax.set_title('Résumé des Tests Adversariaux - Modèle Sécurisé MobileNetV2',
                 fontsize=14, fontweight='bold', pad=20)
 
     plt.tight_layout()
@@ -263,7 +263,7 @@ def create_comprehensive_report(results: dict, output_dir: Path):
     gs = fig.add_gridspec(4, 2, hspace=0.3, wspace=0.3)
 
     # 1. Titre principal
-    fig.suptitle('RAPPORT D\'ANALYSE ADVERSARIALE\nModèle Baseline MobileNetV2',
+    fig.suptitle('RAPPORT D\'ANALYSE ADVERSARIALE\nModèle Sécurisé MobileNetV2',
                 fontsize=18, fontweight='bold', y=0.98)
 
     # 2. Métriques clés (top)
@@ -331,7 +331,7 @@ def create_comprehensive_report(results: dict, output_dir: Path):
 
     ⚠️  VULNÉRABILITÉ CRITIQUE DÉTECTÉE
 
-    Le modèle baseline est extrêmement vulnérable aux attaques adversariales.
+    Le modèle de référence (non sécurisé) est extrêmement vulnérable aux attaques adversariales.
 
     Actions Recommandées:
     1. ✅ Entraîner un modèle sécurisé avec Adversarial Training ou TRADES

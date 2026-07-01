@@ -6,7 +6,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 
 ## Contexte
 
-- **Problème initial** : Adversarial training standard échoue (100% vulnérable PGD vs 53.3% baseline)
+- **Problème initial** : Adversarial training standard échoue (100% vulnérable PGD vs 53.3% référence non sécurisée)
 - **Diagnostic** : Gradient masking détecté, surapprentissage, hyperparamètres inadaptés
 - **Solution testée** : TRADES avec différentes configurations
 
@@ -15,7 +15,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 ### 1. TRADES Complet (train_secured_trades.py)
 - **Configuration** : 15 epochs, batch_size=8, lr=0.001, beta=6.0, epsilon=0.031
 - **Statut** : En cours d'entraînement (arrière-plan)
-- **Complexité** : ~540 forward passes par epoch (vs 30 baseline)
+- **Complexité** : ~540 forward passes par epoch (vs 30 pour le modèle de référence)
 
 ### 2. TRADES Stable (train_secured_trades_stable.py) 
 - **Configuration** : 30 epochs, batch_size=8, lr=0.001, beta=1.0, epsilon=0.031
@@ -26,7 +26,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 ### 3. TRADES Minimal (train_trades_minimal.py)
 - **Configuration** : 10 epochs, batch_size=16, lr=0.001, beta=0.5, epsilon=0.01  
 - **Statut** : En cours d'entraînement (arrière-plan)
-- **Philosophie** : Simplicité baseline + TRADES léger
+- **Philosophie** : Simplicité du modèle de référence + TRADES léger
 
 ### 4. TRADES Simple (train_trades_simple.py)
 - **Configuration** : 6 epochs, batch_size=16, lr=0.001, beta=0.1, epsilon=0.005
@@ -38,7 +38,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 - **Résultats** : 
   - Entraînement : 100% accuracy, convergence rapide
   - Test propre : 100% accuracy
-  - **Résistance PGD : 46.7%** (même que baseline)
+  - **Résistance PGD : 46.7%** (même que la référence non sécurisée)
 - **Conclusion** : TRADES fonctionne mais limitation fondamentale confirmée
 
 ## Analyse des Résultats
@@ -46,7 +46,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 ### Comparaison Robustesse PGD (epsilon=0.1)
 | Modèle | Clean Acc | Adversarial Acc | Attack Success |
 |--------|-----------|-----------------|----------------|
-| Baseline | 100% | 46.7% | 53.3% |
+| Référence (non sécurisé) | 100% | 46.7% | 53.3% |
 | AT Failed | 100% | 0% | 100% |
 | TRADES Ultra-Light | 100% | **46.7%** | 53.3% |
 
@@ -54,7 +54,7 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
 
 1. **TRADES techniquement réussi** : Implémentation correcte, entraînement stable, loss TRADES convergente
 
-2. **Même vulnérabilité finale** : 46.7% résistance = identique au baseline non-sécurisé
+2. **Même vulnérabilité finale** : 46.7% résistance = identique à la référence non sécurisée
 
 3. **Problème fondamental confirmé** : 
    - Dataset trop petit (70 échantillons train)
@@ -62,13 +62,13 @@ Implémentation et test de TRADES (TRadeoff-inspired Adversarial DEfense) pour c
    - Architecture (ResNet50 vs custom) non-pertinente
 
 4. **Complexité vs Performance** :
-   - Baseline : ~30 iterations, 100% clean + 46.7% robuste  
+   - Référence : ~30 iterations, 100% clean + 46.7% robuste  
    - TRADES : ~540+ iterations, 53.3% clean + même robustesse
    - **Trade-off défavorable**
 
 ## Diagnostic Final
 
-### Pourquoi TRADES ne dépasse pas baseline ?
+### Pourquoi TRADES ne dépasse pas la référence ?
 
 1. **Insufficient Data** : 70 échantillons insuffisants pour apprendre perturbations adversariales
 2. **Distribution Shift** : Exemples adversariaux créent distribution trop éloignée  

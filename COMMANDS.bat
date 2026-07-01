@@ -14,24 +14,20 @@ echo.
 echo Choisissez une action:
 echo.
 echo [1] Preparer le dataset (deja fait)
-echo [2] Entraîner modele BASELINE (~30-60min GPU)
-echo [3] Entraîner modele SECURED (~1-2h GPU)
-echo [4] Evaluer et comparer les modeles
-echo [5] Pipeline COMPLET (baseline + secured + eval)
-echo [6] Verifier le dataset
-echo [7] Afficher les resultats
+echo [2] Entraîner modele SECURED (~1-2h GPU)
+echo [3] Evaluer la robustesse adversariale
+echo [4] Verifier le dataset
+echo [5] Afficher les resultats
 echo [Q] Quitter
 echo.
 
 set /p choice="Votre choix: "
 
 if /i "%choice%"=="1" goto DATASET
-if /i "%choice%"=="2" goto BASELINE
-if /i "%choice%"=="3" goto SECURED
-if /i "%choice%"=="4" goto EVALUATE
-if /i "%choice%"=="5" goto PIPELINE
-if /i "%choice%"=="6" goto CHECK_DATASET
-if /i "%choice%"=="7" goto SHOW_RESULTS
+if /i "%choice%"=="2" goto SECURED
+if /i "%choice%"=="3" goto EVALUATE
+if /i "%choice%"=="4" goto CHECK_DATASET
+if /i "%choice%"=="5" goto SHOW_RESULTS
 if /i "%choice%"=="Q" goto END
 
 echo Choix invalide!
@@ -48,19 +44,6 @@ echo.
 pause
 goto MENU
 
-:BASELINE
-echo.
-echo ======================================
-echo   ENTRAINEMENT BASELINE
-echo ======================================
-echo.
-echo Temps estime: 30-60 min (GPU) / 2-4h (CPU)
-echo.
-python src/experiments/baseline/train_mobilenet.py
-echo.
-pause
-goto MENU
-
 :SECURED
 echo.
 echo ======================================
@@ -68,6 +51,7 @@ echo   ENTRAINEMENT SECURED
 echo ======================================
 echo.
 echo Temps estime: 1-2h (GPU) / 4-8h (CPU)
+echo Inclus: Zone 1 (verification donnees), Zone 2 (adversarial training FGSM+PGD)
 echo.
 python src/experiments/secured/train_mobilenet_secured.py
 echo.
@@ -77,33 +61,13 @@ goto MENU
 :EVALUATE
 echo.
 echo ======================================
-echo   EVALUATION COMPARATIVE
+echo   EVALUATION ROBUSTESSE ADVERSARIALE
 echo ======================================
 echo.
 echo Temps estime: 10-20 min
+echo Tests: FGSM (epsilon=0.08), PGD (3 iterations)
 echo.
-python src/experiments/comparative/evaluate_models.py
-echo.
-pause
-goto MENU
-
-:PIPELINE
-echo.
-echo ======================================
-echo   PIPELINE COMPLET
-echo ======================================
-echo.
-echo Cette operation va:
-echo 1. Entraîner le modele baseline (~30-60min)
-echo 2. Entraîner le modele secured (~1-2h)
-echo 3. Evaluer et comparer (~10-20min)
-echo.
-echo Temps total: ~2-3h (GPU) / 7-13h (CPU)
-echo.
-set /p confirm="Continuer? (O/N): "
-if /i not "%confirm%"=="O" goto MENU
-
-python run_full_pipeline.py --skip-dataset
+python src/experiments/secured/attack_secured.py
 echo.
 pause
 goto MENU
@@ -130,11 +94,11 @@ echo ======================================
 echo   AFFICHAGE DES RESULTATS
 echo ======================================
 echo.
-if exist "results\comparative\evaluation_report.txt" (
-    type results\comparative\evaluation_report.txt
+if exist "results\secured_results.json" (
+    type results\secured_results.json
 ) else (
     echo Pas encore de resultats.
-    echo Entraînez d'abord les modeles [2][3] puis evaluez [4].
+    echo Entraînez d'abord le modele [2] puis evaluez [3].
 )
 echo.
 pause

@@ -5,21 +5,9 @@ global:
 rule_files:
   - "alert_rules.yml"
 
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          - alertmanager:9093
-
 scrape_configs:
-  # API Services - Production mode (separate services)
-  - job_name: 'baseline-api'
-    static_configs:
-      - targets: ['baseline-api:8000']
-    metrics_path: /metrics
-    scrape_interval: 10s
-    scrape_timeout: 5s
 
+  # API Sécurisée – MobileNetV2 adversarially trained (modèle unique en production)
   - job_name: 'secured-api'
     static_configs:
       - targets: ['secured-api:8000']
@@ -27,25 +15,8 @@ scrape_configs:
     scrape_interval: 10s
     scrape_timeout: 5s
 
-  # Infrastructure Services
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
     scrape_interval: 30s
-
-  # Optionnel: Services de monitoring additionnels
-  # Décommenter si vous ajoutez ces services au docker-compose.prod.yml
-  # - job_name: 'node-exporter'
-  #   static_configs:
-  #     - targets: ['node-exporter:9100']
-  #   scrape_interval: 30s
-  #
-  # - job_name: 'postgres'
-  #   static_configs:
-  #     - targets: ['postgres:9187']
-  #   scrape_interval: 30s
-  #
-  # - job_name: 'redis'
-  #   static_configs:
-  #     - targets: ['redis:9121']
-  #   scrape_interval: 30s

@@ -2,8 +2,8 @@
 Attack Secured Model - Test de Robustesse Zone 3
 Conforme à l'Architecture de Sécurisation IA
 
-Ce module teste la robustesse du modèle sécurisé contre les mêmes attaques
-qui ont compromis le modèle baseline (53.3% success PGD).
+Ce module teste la robustesse du modèle sécurisé contre les attaques FGSM et PGD.
+Valeurs de référence thèse (modèle non-sécurisé) : FGSM ~73%, PGD ~53% de succès.
 
 Zone 3: Validation & Test - Certification de robustesse
 """
@@ -211,7 +211,7 @@ class SecuredModelTester:
     def pgd_robustness_test(self, epsilon=0.1, alpha=0.02, num_iter=10):
         """Test robustesse PGD sur modèle sécurisé (attaque critique détectée)"""
         self._log_security_event("PGD_TEST_START", 
-            f"Test robustesse PGD (attaque critique baseline: 53.3%)", "WARNING")
+            f"Test robustesse PGD (reference non-securise: 53.3%)", "WARNING")
         
         correct_clean = 0
         correct_adversarial = 0
@@ -277,9 +277,9 @@ class SecuredModelTester:
             "adversarial_accuracy": adversarial_accuracy,
             "attack_success_rate": attack_success_rate,
             "robustness_degradation": robustness_degradation,
-            "baseline_comparison": {
-                "baseline_pgd_success": 53.3,
-                "improvement": 53.3 - attack_success_rate
+            "reference_improvement": {
+                "reference_pgd_success_unsecured": 53.3,
+                "improvement_vs_unsecured": 53.3 - attack_success_rate
             }
         }
         
@@ -295,14 +295,14 @@ class SecuredModelTester:
             log_level = "CRITICAL"
         
         self._log_security_event("PGD_TEST_COMPLETE", 
-            f"PGD Robustesse - Success: {attack_success_rate:.1f}%, Amelioration vs baseline: {53.3 - attack_success_rate:.1f}%", 
+            f"PGD Robustesse - Success: {attack_success_rate:.1f}%, Amelioration vs reference: {53.3 - attack_success_rate:.1f}%",
             log_level)
         
         results["security_level"] = security_level
         return results
     
     def generate_fgsm_comparison(self, fgsm_results):
-        """Génération rapport FGSM baseline vs sécurisé"""
+        """Génération rapport robustesse FGSM du modèle sécurisé"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Rapport de comparaison
@@ -362,45 +362,42 @@ class SecuredModelTester:
         plt.savefig(self.results_dir / f"fgsm_robustness_{timestamp}.png", dpi=300)
         plt.close()
 
-    def _create_comparison_chart(self, baseline, fgsm_secured, pgd_secured, timestamp):
-        """Création graphique de comparaison visuelle"""
+    def _create_robustness_chart(self, fgsm_results, pgd_results, timestamp):
+        """Graphique de robustesse du modèle sécurisé vs valeurs de référence (thèse)"""
+        # Valeurs de référence (modèle non sécurisé, issues du mémoire)
+        reference_fgsm = 73.2
+        reference_pgd  = 53.3
+
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-        
-        # Graphique 1: Comparaison success rates
+
         attacks = ['FGSM', 'PGD']
-        baseline_rates = [baseline["fgsm_success"], baseline["pgd_success"]]
-        secured_rates = [fgsm_secured['attack_success_rate'], pgd_secured['attack_success_rate']]
-        
+        ref_rates = [reference_fgsm, reference_pgd]
+        sec_rates = [fgsm_results['attack_success_rate'], pgd_results['attack_success_rate']]
+
         x = np.arange(len(attacks))
         width = 0.35
-        
-        ax1.bar(x - width/2, baseline_rates, width, label='Baseline (Vulnerable)', color='red', alpha=0.7)
-        ax1.bar(x + width/2, secured_rates, width, label='Secured (Adversarial Training)', color='green', alpha=0.7)
-        
-        ax1.set_xlabel('Attack Types')
-        ax1.set_ylabel('Attack Success Rate (%)')
-        ax1.set_title('Model Robustness Comparison')
+
+        ax1.bar(x - width/2, ref_rates, width, label='Non sécurisé (référence)', color='red',   alpha=0.7)
+        ax1.bar(x + width/2, sec_rates, width, label='Secured (Adversarial Training)', color='green', alpha=0.7)
+        ax1.set_xlabel('Type d\'attaque')
+        ax1.set_ylabel('Taux de succès attaque (%)')
+        ax1.set_title('Robustesse : non sécurisé vs sécurisé')
         ax1.set_xticks(x)
         ax1.set_xticklabels(attacks)
         ax1.legend()
         ax1.grid(True, alpha=0.3)
-        
-        # Graphique 2: Amélioration de robustesse
-        improvements = [
-            baseline["fgsm_success"] - fgsm_secured['attack_success_rate'],
-            baseline["pgd_success"] - pgd_secured['attack_success_rate']
-        ]
-        
+
+        improvements = [ref_rates[i] - sec_rates[i] for i in range(len(attacks))]
         colors = ['green' if imp >= 0 else 'red' for imp in improvements]
         ax2.bar(attacks, improvements, color=colors, alpha=0.7)
-        ax2.set_xlabel('Attack Types')
-        ax2.set_ylabel('Robustness Improvement (%)')
-        ax2.set_title('Security Improvement with Adversarial Training')
+        ax2.set_xlabel('Type d\'attaque')
+        ax2.set_ylabel('Amélioration (%)')
+        ax2.set_title('Gain de robustesse (adversarial training)')
         ax2.grid(True, alpha=0.3)
         ax2.axhline(y=0, color='black', linestyle='-', alpha=0.3)
-        
+
         plt.tight_layout()
-        plt.savefig(self.results_dir / f"robustness_comparison_{timestamp}.png", dpi=300)
+        plt.savefig(self.results_dir / f"robustness_chart_{timestamp}.png", dpi=300)
         plt.close()
 
 def attack_secured():
@@ -436,7 +433,6 @@ def attack_secured():
         )
         
         print("\nDEBUT TEST DE ROBUSTESSE FGSM:")
-        print("Comparaison avec baseline...")
 
         # Test FGSM UNIQUEMENT
         print("\n--- Test Robustesse FGSM ---")

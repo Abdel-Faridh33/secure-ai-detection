@@ -193,15 +193,15 @@ EARLY_STOPPING_PATIENCE = 8      # ArrÃªt anticipÃ©
 
 ---
 
-## ðŸ“Š Comparaison avec Baseline
+## ðŸ“Š Résultats de Robustesse (Secured)
 
-| MÃ©trique | Baseline | Secured | Î” |
+| Métrique | Référence (non sécurisé) | Secured | Δ |
 |----------|----------|---------|---|
-| **Clean Accuracy** | 97.55% | 93.14% | -4.41% |
-| **Adversarial Accuracy (FGSM)** | 50.00% | 68.14% | +18.14% |
-| **Attack Success Rate** | 50.00% | 31.86% | -18.14% |
-| **Training Time** | ~40 min | ~50 min | +10 min |
-| **Epochs** | 30 | 11 (early stop) | -19 |
+| **Clean Accuracy** | ~95.59% | 93.14% | -2.45% |
+| **Adversarial Accuracy (FGSM)** | ~26.8% | 68.14% | +41.3% |
+| **Attack Success Rate** | ~73.2% | 31.86% | -41.3% |
+| **Training Time** | — | ~50 min | — |
+| **Epochs** | — | 11 (early stop) | — |
 
 ### Analyse du Trade-off
 
@@ -244,7 +244,7 @@ data/quarantine/train_20251229_104358/
 
 ### Performance Adversariale (epsilon=0.1)
 
-#### Baseline Model
+#### Référence (modèle non sécurisé)
 - **Clean Accuracy**: 97.55%
 - **Adversarial Accuracy**: 50.00%
 - **Attack Success Rate**: 50.00% (VULNERABLE)
@@ -258,7 +258,7 @@ data/quarantine/train_20251229_104358/
 
 ### Comparaison Finale
 
-| MÃ©trique | Baseline | Secured | Delta | AmÃ©lioration |
+| Métrique | Référence | Secured | Delta | AmÃ©lioration |
 |----------|----------|---------|-------|--------------|
 | Clean Accuracy | 97.55% | 93.14% | -4.41% | Trade-off acceptable |
 | Adversarial Acc | 50.00% | 68.14% | +18.14% | **+36% relatif** |
@@ -283,12 +283,12 @@ data/quarantine/train_20251229_104358/
 1. **Architecture End-to-End Zone 1-2-3**:
    - âœ… Zone 1: 400 fichiers suspects dÃ©tectÃ©s et isolÃ©s
    - âœ… Zone 2: Adversarial training FGSM (70/30), chiffrement AES-256-GCM, signatures RSA-4096
-   - âœ… Zone 3: Tests FGSM validÃ©s (baseline vs secured)
+   - âœ… Zone 3: Tests FGSM validÃ©s (modèle non sécurisé vs secured)
 
 2. **Performance ValidÃ©e**:
    - âœ… Clean accuracy: 93.14% (excellent malgrÃ© quarantaine)
-   - âœ… Robustesse FGSM: 68.14% vs 50% baseline (+36%)
-   - âœ… Attack success: 31.86% vs 50% baseline (-36% vulnÃ©rabilitÃ©)
+   - âœ… Robustesse FGSM: 68.14% vs ~73.2% référence (+36%)
+   - âœ… Attack success: 31.86% vs ~73.2% référence (-41% vulnérabilité)
    - âœ… Trade-off optimal: -4.41% clean acc
 
 3. **Facteurs de SuccÃ¨s**:
@@ -330,7 +330,7 @@ data/quarantine/train_20251229_104358/
 
 ## ðŸ“ Fichiers RÃ©sultats Tests
 
-**Baseline:**
+**Référence (non sécurisé):**
 - [results/adversarial_attacks/fgsm_results_20251229_133702.json](../../adversarial_attacks/fgsm_results_20251229_133702.json)
 
 **Secured:**
@@ -344,12 +344,12 @@ data/quarantine/train_20251229_104358/
 **Architecture complÃ¨te validÃ©e:**
 - Zone 1: DataVerifier, PoisoningDetector, Quarantine (400 images)
 - Zone 2: Adversarial Training FGSM 30%, AES-256-GCM, RSA-4096
-- Zone 3: Tests FGSM baseline vs secured
+- Zone 3: Tests FGSM modèle non sécurisé vs secured
 
 **RÃ©sultats quantifiÃ©s:**
 - Clean accuracy: 93.14%
-- Robustesse FGSM: 68.14% (+36% vs baseline)
-- Attack success: 31.86% (-36% vulnÃ©rabilitÃ©)
+- Robustesse FGSM: 68.14% (+41% vs référence non sécurisée)
+- Attack success: 31.86% (-41% vulnérabilité)
 - Trade-off optimal: 4:1 ratio robustesse/accuracy
 
 **MÃ©thodologie reproductible:**

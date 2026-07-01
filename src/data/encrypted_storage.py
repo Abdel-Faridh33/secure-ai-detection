@@ -491,7 +491,7 @@ if __name__ == '__main__':
     storage = EncryptedStorage(password=password)
 
     # Test 1: Chiffrer un modèle PyTorch (si existe)
-    model_path = 'models/baseline/best_model.pth'
+    model_path = 'models/secured/best_secured_model.pth'
 
     if os.path.exists(model_path):
         print("\n[TEST 1] Chiffrement d'un modèle PyTorch")

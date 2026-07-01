@@ -313,11 +313,11 @@ Exemples d'utilisation:
     print("=" * 60)
     print(f"\n📁 Fichier créé: {output_path.absolute()}")
     print(f"\n📋 Prochaines étapes:")
-    print(f"  1. Ouvrir notebooks/train_baseline_colab.ipynb dans Google Colab")
+    print(f"  1. Ouvrir notebooks/train_secured_colab.ipynb dans Google Colab")
     print(f"  2. Activer le GPU (Runtime > Change runtime type > GPU)")
     print(f"  3. Uploader {output_path.name} dans la section appropriée")
     print(f"  4. Exécuter toutes les cellules")
-    print(f"  5. Télécharger baseline_results.zip à la fin")
+    print(f"  5. Télécharger secured_results.zip à la fin")
     print(f"\n📖 Documentation complète: notebooks/README_COLAB.md")
     print("=" * 60)
 

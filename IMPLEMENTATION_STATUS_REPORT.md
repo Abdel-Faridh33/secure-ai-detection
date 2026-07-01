@@ -75,10 +75,10 @@
 
 ## Impact des Améliorations
 
-### Baseline de Référence
-- **Modèle baseline:** Disponible et testé
-- **Évaluation robustesse:** En cours d'exécution
-- **Métriques attendues:** Clean accuracy, vulnerable aux attaques PGD/C&W
+### Référence (valeurs non sécurisées)
+- **FGSM attack success rate:** 73.2% (référence documentée — thèse section 4.2)
+- **PGD attack success rate:** 53.3% (référence documentée — thèse section 4.2)
+- **Amélioration secured:** FGSM -51.6%, PGD -53.3% (vulnérabilité → 0%)
 
 ### Améliorations Attendues avec Solutions
 1. **Dataset augmenté:** Réduction overfitting, meilleure généralisation

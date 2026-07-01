@@ -61,10 +61,9 @@ def main():
 
         print("""
 📋 Guide rapide:
-   1. Sélectionnez une image (JPG, PNG, GIF)
-   2. Choisissez le modèle (Baseline ou Sécurisé)
-   3. Cliquez sur "Analyser l'image"
-   4. Consultez les résultats de détection
+   1. Chargez une image (JPG, PNG, GIF)
+   2. Cliquez sur "Analyser l'image"
+   3. Consultez les résultats de détection
 
 🔧 Commandes utiles:
    • make status    - Voir l'état des services

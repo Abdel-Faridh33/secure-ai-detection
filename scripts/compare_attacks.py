@@ -1,5 +1,5 @@
 """
-Comparaison visuelle des attaques FGSM vs PGD sur le modèle baseline
+Comparaison visuelle des attaques FGSM vs PGD sur le modèle sécurisé
 Génère des graphiques pour comprendre l'impact des attaques adversariales
 """
 
@@ -274,7 +274,7 @@ def print_analysis(fgsm_results, pgd_results):
 
     print(f"\n🔍 ANALYSE:")
     print(f"   ➤ PGD est {diff_success/fgsm_results['attack_success_rate']*100:.1f}% plus efficace que FGSM")
-    print(f"   ➤ Le modèle baseline perd {pgd_results['robustness_degradation']:.1f}% de robustesse sous PGD")
+    print(f"   ➤ Le modèle sécurisé perd {pgd_results['robustness_degradation']:.1f}% de robustesse sous PGD")
     print(f"   ➤ L'adversarial accuracy chute à {pgd_results['adversarial_accuracy']:.1f}% avec PGD")
 
     print(f"\n⚠️ NIVEAU DE RISQUE:")

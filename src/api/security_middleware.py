@@ -8,7 +8,7 @@ Intégration :
 - Logs de sécurité
 """
 
-from fastapi import Request, HTTPException
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 import time
@@ -16,6 +16,18 @@ import time
 from src.security.waf import waf
 from src.security.anomaly_detector import anomaly_detector
 from src.monitoring.audit_logger import audit_logger, SeverityLevel
+from src.monitoring.metrics import security_attacks_blocked_total
+
+
+WAF_EXEMPT_PATHS = {
+    "/security/waf/status",
+    "/security/waf/blocked-ips",
+    "/security/waf/unblock",
+    "/security/login",
+    "/security/register",
+    "/docs",
+    "/openapi.json",
+}
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -32,40 +44,48 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         # Récupérer l'IP du client
         client_ip = request.client.host if request.client else "unknown"
 
-        # Extraire le filename si c'est un upload
-        filename = None
-        if request.method == "POST" and "/predict" in str(request.url.path):
-            # Le filename sera validé plus tard par le WAF
-            pass
+        path = str(request.url.path)
 
         # 1. Vérification WAF (rate limiting + validation)
+        # Exemption pour les endpoints d'administration WAF (évite de bloquer l'admin)
+        if path in WAF_EXEMPT_PATHS:
+            return await call_next(request)
+
+        filename = None
         waf_result = waf.check_request(ip=client_ip, filename=filename)
 
         if not waf_result["allowed"]:
-            # Requête bloquée par le WAF
-            # Log de sécurité
+            reason = waf_result.get("reason", "rate_limit")
+            # Incrémenter le compteur Prometheus AVANT de retourner la réponse
+            security_attacks_blocked_total.labels(reason=reason).inc()
             audit_logger.log_event(
                 event_type="security_block",
                 severity=SeverityLevel.SECURITY_ALERT,
-                description=f"WAF blocked request: {waf_result['reason']}",
+                description=f"WAF blocked request: {reason}",
                 user_id="unknown",
                 client_ip=client_ip,
                 metadata={
                     "endpoint": str(request.url.path),
                     "method": request.method,
-                    "reason": waf_result["reason"],
+                    "reason": reason,
                     "request_count": waf_result["request_count"]
                 }
             )
 
-            # Retourner une réponse 429 (Too Many Requests)
+            # Retourner une réponse 429 avec headers CORS pour que le browser puisse lire le statut
+            origin = request.headers.get("origin", "")
+            cors_headers = {}
+            if origin:
+                cors_headers["Access-Control-Allow-Origin"] = origin
+                cors_headers["Access-Control-Allow-Credentials"] = "true"
             return JSONResponse(
                 status_code=429,
                 content={
                     "error": "Rate limit exceeded",
                     "detail": waf_result["reason"],
-                    "retry_after": 300  # 5 minutes
-                }
+                    "retry_after": 300
+                },
+                headers=cors_headers
             )
 
         try:
@@ -144,26 +164,3 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             raise
 
 
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware léger pour logger toutes les requêtes
-    (Alternative au middleware existant dans app.py)
-    """
-
-    async def dispatch(self, request: Request, call_next):
-        """
-        Logger les infos de base de chaque requête
-        """
-        start_time = time.time()
-        client_ip = request.client.host if request.client else "unknown"
-
-        # Traiter la requête
-        response = await call_next(request)
-
-        # Calculer le temps de traitement
-        processing_time_ms = (time.time() - start_time) * 1000
-
-        # Log simple
-        print(f"[{client_ip}] {request.method} {request.url.path} - {response.status_code} ({processing_time_ms:.2f}ms)")
-
-        return response

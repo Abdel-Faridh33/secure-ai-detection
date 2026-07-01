@@ -140,7 +140,7 @@ class AutoAttack:
         print(f"Attaques: {', '.join(attacks_to_run)}")
         print(f"Dataset: {len(dataloader.dataset) if hasattr(dataloader, 'dataset') else 'inconnu'} echantillons")
         
-        # Evaluation baseline (donnees propres)
+        # Evaluation sur donnees propres (accuracy de reference)
         clean_accuracy = self._evaluate_clean_accuracy(dataloader)
         results['summary']['clean_accuracy'] = clean_accuracy
         

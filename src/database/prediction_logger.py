@@ -51,7 +51,7 @@ class PredictionLogger:
         Enregistre une prédiction
 
         Args:
-            model_type: Type de modèle (baseline, secured, etc.)
+            model_type: Type de modèle (secured)
             model_version: Version du modèle
             image_hash: Hash SHA-256 de l'image
             prediction_result: Résultat ('dangerous' ou 'safe')

@@ -30,14 +30,14 @@ Le système de monitoring utilise **Prometheus** (collecte des métriques) et **
 
 ### Mode Production
 ```
-┌──────────────────┐      ┌──────────────────┐
-│ baseline-api:8000│      │ secured-api:8000 │  ← Services séparés
-└────────┬─────────┘      └─────────┬────────┘
-         │ /metrics                 │ /metrics
-         └──────────┬───────────────┘
-                    ▼
+                 ┌──────────────────┐
+                 │  secured-api     │  ← Service unique (derrière Nginx)
+                 │  (port 8000)     │
+                 └────────┬─────────┘
+                          │ /metrics
+                          ▼
          ┌─────────────────────┐
-         │  Prometheus Prod    │  ← Scrape les 2 APIs
+         │  Prometheus Prod    │  ← Scrape l'API sécurisée
          │     (port 9090)     │
          └──────────┬──────────┘
                     │
@@ -57,7 +57,7 @@ Le système de monitoring utilise **Prometheus** (collecte des métriques) et **
 | Fichier | Environnement | Targets |
 |---------|--------------|---------|
 | `configs/monitoring/prometheus.yml` | **Development** | `dev:8000` |
-| `configs/monitoring/prometheus.prod.yml` | **Production** | `baseline-api:8000`, `secured-api:8000` |
+| `configs/monitoring/prometheus.prod.yml` | **Production** | `secured-api:8000` |
 
 ### Grafana
 
@@ -100,8 +100,7 @@ make up
 make prod
 
 # Services actifs:
-# - baseline-api:8000  (port externe: 8001)
-# - secured-api:8000   (port externe: 8002)
+# - secured-api:8000   (derrière nginx, port 443)
 # - prometheus:9090
 # - grafana:3000
 ```
@@ -147,10 +146,6 @@ Résultat attendu:
 {
   "activeTargets": [
     {
-      "labels": {"job": "baseline-api", "instance": "baseline-api:8000"},
-      "health": "up"
-    },
-    {
       "labels": {"job": "secured-api", "instance": "secured-api:8000"},
       "health": "up"
     },
@@ -180,10 +175,6 @@ Résultat attendu:
   "status": "success",
   "data": {
     "result": [
-      {
-        "metric": {"model_type": "baseline"},
-        "value": [timestamp, "96.08"]
-      },
       {
         "metric": {"model_type": "secured"},
         "value": [timestamp, "96.08"]
@@ -227,7 +218,7 @@ Résultat attendu:
    # Dev - Vérifier que dev:8000 est configuré
    docker exec secure-ai-prometheus1 cat /etc/prometheus/prometheus.yml
 
-   # Prod - Vérifier que baseline-api et secured-api sont configurés
+   # Prod - Vérifier que secured-api est configuré
    docker exec prometheus-prod1 sh -c "cat /etc/prometheus/prometheus.yml"
    ```
 
@@ -268,7 +259,7 @@ docker network inspect secure-ai-network
 - `http_request_duration_seconds` - Durée des requêtes (histogram)
 
 ### Métriques IA
-- `ai_model_accuracy` - Précision du modèle (par model_type: baseline/secured)
+- `ai_model_accuracy` - Précision du modèle sécurisé
 - `ai_model_predictions_total` - Nombre de prédictions (par model_type et prediction: safe/dangerous)
 - `ai_model_processing_seconds` - Temps de traitement des prédictions (histogram)
 
@@ -294,7 +285,7 @@ Pour améliorer le monitoring:
 
 3. **Optimiser le dashboard**:
    - Ajouter des panels spécifiques à la sécurité
-   - Comparer baseline vs secured en temps réel
+   - Visualiser les attaques bloquées par le WAF en temps réel
 
 4. **Ajouter Node Exporter**:
    - Métriques système (CPU, RAM, disque)

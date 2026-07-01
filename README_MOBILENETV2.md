@@ -8,41 +8,33 @@ Version améliorée avec architecture MobileNetV2 et métriques réalistes.
 
 ## 📋 Vue d'ensemble
 
-Ce projet compare deux approches pour la classification d'objets dangereux:
+Ce projet implémente un système sécurisé de classification d'objets dangereux:
 
-1. **Baseline**: MobileNetV2 standard avec transfer learning
-2. **Secured**: MobileNetV2 + TRADES (adversarial training)
+- **Modèle**: MobileNetV2 + TRADES (adversarial training) — robuste aux attaques adversariales
 
 ### 🎯 Objectifs
 
 - Classifier des images en "safe" ou "dangerous"
 - Résister aux attaques adversariales (FGSM, PGD)
 - Obtenir des métriques réalistes et reproductibles
-- Documenter le trade-off accuracy/robustness
+- Démontrer une architecture de sécurité IA de bout en bout (5 zones)
 
 ---
 
 ## 🏗️ Architecture
 
-### Baseline
+### Modèle Sécurisé (MobileNetV2 + TRADES)
 - **Modèle**: MobileNetV2 pré-entraîné (ImageNet)
-- **Paramètres**: 3.5M (vs 25.6M pour ResNet50)
+- **Paramètres**: 3.5M (~25ms CPU)
 - **Techniques**:
   - Transfer learning (freeze early layers)
-  - Dropout (0.3)
+  - Dropout (0.4)
   - Early stopping
   - Learning rate scheduling
   - Data augmentation
-
-### Secured
-- **Modèle**: MobileNetV2 + TRADES
-- **Adversarial Training**: PGD-based
-- **Paramètres**: 3.5M + régularisation renforcée
-- **Techniques**:
-  - Toutes celles du baseline
   - TRADES loss (β=6.0)
   - KL divergence regularization
-  - Adversarial examples generation
+  - Adversarial examples generation (FGSM ε=0.08 + PGD 3 iter)
 
 ---
 
@@ -106,15 +98,12 @@ AA-secure-ai-detection/
 │
 ├── src/
 │   └── experiments/
-│       ├── baseline/
-│       │   └── train_mobilenet.py         # Entraînement baseline
 │       ├── secured/
-│       │   └── train_mobilenet_secured.py # Entraînement secured
-│       └── comparative/
-│           └── evaluate_models.py          # Évaluation comparative
+│       │   └── train_mobilenet_secured.py # Entraînement sécurisé
+│       └── attacks/
+│           └── adversarial/attack_secured.py # Évaluation robustesse
 │
 ├── models/                      # Modèles entraînés (généré)
-│   ├── baseline_mobilenet/
 │   └── secured/
 │
 ├── results/                     # Résultats et graphiques (généré)
@@ -142,13 +131,10 @@ python run_full_pipeline.py
 # Seulement préparer le dataset
 python run_full_pipeline.py --step dataset
 
-# Seulement entraîner baseline
-python run_full_pipeline.py --step baseline
-
-# Seulement entraîner secured
+# Seulement entraîner le modèle sécurisé
 python run_full_pipeline.py --step secured
 
-# Seulement évaluer
+# Seulement évaluer la robustesse
 python run_full_pipeline.py --step evaluate
 
 # Pipeline complet mais réutiliser le dataset existant
@@ -166,16 +152,7 @@ python data/prepare_dataset.py
 - `data/prepared/train/`, `val/`, `test/`
 - `data/prepared/dataset_stats.json`
 
-#### 2. Entraîner le modèle baseline
-```bash
-python src/experiments/baseline/train_mobilenet.py
-```
-
-**Sortie**:
-- `models/baseline/best_model.pth`
-- `models/baseline/training_history.png`
-
-#### 3. Entraîner le modèle secured
+#### 2. Entraîner le modèle sécurisé
 ```bash
 python src/experiments/secured/train_mobilenet_secured.py
 ```
@@ -198,24 +175,24 @@ python src/experiments/comparative/evaluate_models.py
 
 ## 📈 Résultats Attendus
 
-### Métriques Réalistes
+### Métriques Obtenues
 
-| Métrique | Baseline | Secured | Amélioration |
-|----------|----------|---------|--------------|
-| **Clean Accuracy** | 85-92% | 83-90% | -2 à -5% |
-| **ASR FGSM** (ε=8/255) | 60-75% | 10-20% | -50 à -60% |
-| **ASR PGD** (ε=8/255) | 70-85% | 20-35% | -50 à -55% |
+| Métrique | Référence (non sécurisé) | Secured | Amélioration |
+|----------|--------------------------|---------|--------------|
+| **Clean Accuracy** | 95.59% | 96.08% | +0.5% |
+| **ASR FGSM** (ε=0.1) | ~73.2% | 21.57% | -51.6% |
+| **ASR PGD** (ε=0.1) | ~53.3% | 0.0% | -53.3% |
 
 ### Interprétation
 
-- **Clean Accuracy**: Légère baisse pour le modèle secured (trade-off)
+- **Clean Accuracy**: Maintenue voire améliorée (trade-off favorable)
 - **ASR** (Attack Success Rate): Taux d'images où l'attaque réussit
   - Plus bas = meilleur (plus robuste)
-  - Le modèle secured devrait avoir un ASR ~50% plus bas
+  - Le modèle secured est +51% plus robuste FGSM, +53% PGD
 
 ### Trade-off Accuracy/Robustness
 
-Le modèle secured sacrifie 2-5% d'accuracy sur données propres pour gagner 50-60% de robustness aux attaques.
+Le modèle sécurisé maintient 96.08% d'accuracy propre tout en réduisant à 0% la vulnérabilité PGD.
 
 ---
 
@@ -237,7 +214,7 @@ L_robustness = KL(f(x_natural) || f(x_adv))
 
 ### Régularisation
 
-- **Dropout**: 0.3 (baseline), 0.4 (secured)
+- **Dropout**: 0.4 (adversarial training)
 - **Weight decay**: 1e-4
 - **Batch Normalization**: Secured uniquement
 - **Early stopping**: patience=10 epochs

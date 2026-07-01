@@ -1,883 +1,503 @@
 """
-API FastAPI principale
-Point d'entrée pour les services de détection
+API FastAPI - Système de Détection Sécurisé
+Architecture de Sécurisation IA : 5 Zones
 
-Intégration Zone 5 - Gouvernance et Surveillance :
-- Audit Trail complet de toutes les opérations
-- Traçabilité légale des prédictions
-- Logs immuables pour conformité
+Zones intégrées :
+- Zone 1 : Chargement du modèle depuis stockage chiffré AES-256-GCM
+- Zone 2 : Vérification de la signature RSA-4096 du modèle
+- Zone 4 : WAF + JWT/RBAC + détection d'anomalies à l'inférence
+- Zone 5 : Audit trail immuable (SHA-256, logs JSON append-only)
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-from fastapi.responses import Response, JSONResponse
-import uvicorn
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-import time
-import random
-import asyncio
-from PIL import Image
+import os
 import io
+import sys
+import json
+import time
+import hashlib
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
 import torch
 from torchvision import transforms
+from PIL import Image
 
-# Import du système d'audit
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response, JSONResponse
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+import uvicorn
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+
 from src.monitoring.audit_logger import audit_logger, EventType, SeverityLevel
-
-# Import du système d'authentification et sécurité
+from src.monitoring.metrics import (
+    http_requests_total,
+    http_request_duration_seconds,
+    ai_predictions_total,
+    ai_processing_seconds,
+    security_attacks_blocked_total,
+)
 from src.api.security_endpoints import router as security_router
 from src.api.security_middleware import SecurityMiddleware
 from src.security.auth import verify_token
-
-# Import du chargeur de modèles
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from src.data.encrypted_storage import EncryptedStorage
 from models.utils.model_loader import ModelLoader
 
-# ZONE 1: Import des modules de sécurité des données
-from src.data.encrypted_storage import EncryptedStorage
-from src.data.data_verifier import DataVerifier
-
+# ─────────────────────────────────────────────
+# Application
+# ─────────────────────────────────────────────
 app = FastAPI(
     title="Secure Object Detection API",
-    description="API de détection d'objets dangereux vs sûrs",
-    version="1.0.0"
+    description=(
+        "Système de détection d'objets dangereux – modèle MobileNetV2 sécurisé "
+        "(adversarial training FGSM/PGD, AES-256-GCM, signature RSA-4096, "
+        "WAF, JWT/RBAC, audit trail immuable)"
+    ),
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url=None,
 )
 
-# Inclusion du router d'authentification et sécurité
+# CORS – wildcard autorisé en dev (ALLOWED_ORIGINS=*)
+_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:8800,http://localhost:3000")
+_wildcard = _origins_raw.strip() == "*"
+ALLOWED_ORIGINS = ["*"] if _wildcard else _origins_raw.split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=not _wildcard,   # credentials incompatible avec wildcard
+    allow_methods=["*"] if _wildcard else ["GET", "POST"],
+    allow_headers=["*"] if _wildcard else ["Authorization", "Content-Type"],
+)
+
+# Zone 4 : WAF + détection d'anomalies sur chaque requête
+app.add_middleware(SecurityMiddleware)
+
+# Router sécurité (auth, tokens)
 app.include_router(security_router)
 
-# Métriques Prometheus
-request_count = Counter(
-    'http_requests_total',
-    'Total des requêtes HTTP',
-    ['method', 'endpoint', 'status']
-)
+# Métriques Prometheus — définies dans src/monitoring/metrics.py
+request_count    = http_requests_total
+request_duration = http_request_duration_seconds
+prediction_count = ai_predictions_total
+processing_time  = ai_processing_seconds
+attack_blocked   = security_attacks_blocked_total
 
-request_duration = Histogram(
-    'http_request_duration_seconds',
-    'Durée des requêtes HTTP en secondes',
-    ['method', 'endpoint']
-)
-
-prediction_count = Counter(
-    'ai_model_predictions_total',
-    'Total des prédictions par modèle',
-    ['model_type', 'prediction']
-)
-
-model_accuracy = Gauge(
-    'ai_model_accuracy',
-    'Précision actuelle du modèle',
-    ['model_type']
-)
-
-processing_time = Histogram(
-    'ai_model_processing_seconds',
-    'Temps de traitement des prédictions',
-    ['model_type']
-)
-
-# ============================================================
-# CHARGEMENT DES MODÈLES PYTORCH
-# ============================================================
-
-# Variables globales pour les modèles
-models_loaded = {}
+# ─────────────────────────────────────────────
+# Modèle global (secured uniquement)
+# ─────────────────────────────────────────────
+_model = None
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],  # ImageNet normalization
-        std=[0.229, 0.224, 0.225]
-    )
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225],
+    ),
 ])
 
-@app.on_event("startup")
-async def load_models():
+logger = logging.getLogger("secure-api")
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+)
+
+
+def _load_secured_model() -> Optional[torch.nn.Module]:
     """
-    Charge les modèles PyTorch au démarrage de l'API
-    ZONE 1: Support du chargement depuis stockage crypté
-    ZONE 2: Vérification des signatures RSA-4096
+    Zone 1 + Zone 2 : charge le modèle sécurisé.
+
+    Priorité :
+      1. Stockage chiffré AES-256-GCM  (Zone 1)
+      2. Fichier .pth signé RSA-4096   (Zone 2)
+      3. Fichier .pth non signé        (fallback avec avertissement)
     """
-    global models_loaded
-    import logging
+    project_root = Path(__file__).resolve().parents[2]
+    models_dir = project_root / "models" / "secured"
 
-    # Configuration du logger
-    logger = logging.getLogger("model_loader")
-    logger.setLevel(logging.INFO)
+    # ── 1. Chargement depuis stockage chiffré ────────────────────
+    encrypted_path = models_dir / "encrypted" / "best_secured_model_encrypted.enc"
+    metadata_path = encrypted_path.with_suffix(".enc").parent / "best_secured_model_encrypted_metadata.json"
 
-    # Handler console
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [MODEL_LOADER] %(message)s')
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    logger.info(f"Starting model loading process on device: {device}")
-
-    # Chemins vers les modèles
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    baseline_path = os.path.join(project_root, "models", "baseline", "best_model.pth")
-    secured_paths = [
-        os.path.join(project_root, "models", "secured", "best_secured_model.pth"),
-        os.path.join(project_root, "models", "secured", "final_secured_model.pth")
-    ]
-
-    # ZONE 1: Chemin vers le modèle chiffré
-    encrypted_secured_path = os.path.join(project_root, "models", "secured", "encrypted", "best_secured_model_encrypted.enc")
-
-    # Charger le modèle baseline
-    logger.info("Loading baseline model...")
-    if os.path.exists(baseline_path):
+    if encrypted_path.exists() and metadata_path.exists():
         try:
-            models_loaded["baseline"] = ModelLoader.load_mobilenetv2_checkpoint(
-                baseline_path,
-                device=str(device)
-            )
-            logger.info(f"Baseline model loaded successfully from {baseline_path}")
-
-            # Log audit
+            logger.info("Zone 1 : tentative de déchiffrement AES-256-GCM...")
+            storage = EncryptedStorage(password=os.getenv("MODEL_ENCRYPTION_KEY", "SecureAI_2024_Production"))
+            temp_path = models_dir / ".temp_decrypted.pth"
+            meta = EncryptedStorage.load_metadata(str(metadata_path))
+            storage.decrypt_pytorch_model(str(encrypted_path), str(temp_path), meta)
+            model = ModelLoader.load_mobilenetv2_checkpoint(str(temp_path), device=str(device))
+            temp_path.unlink(missing_ok=True)
+            logger.info("Zone 1 : modèle chargé depuis stockage chiffré (AES-256-GCM).")
             audit_logger.log_event(
                 event_type=EventType.MODEL_LOADED.value,
                 severity=SeverityLevel.INFO,
-                description="Baseline model loaded successfully",
-                metadata={
-                    "model_type": "baseline",
-                    "model_path": baseline_path,
-                    "device": str(device)
-                }
+                description="Secured model loaded from AES-256-GCM encrypted storage",
+                metadata={"source": "encrypted", "device": str(device)},
             )
-        except Exception as e:
-            logger.error(f"Failed to load baseline model: {e}")
-            audit_logger.log_event(
-                event_type=EventType.SYSTEM_ERROR.value,
-                severity=SeverityLevel.WARNING,
-                description="Failed to load baseline model",
-                metadata={"error": str(e), "model_path": baseline_path}
-            )
-    else:
-        logger.warning(f"Baseline model not found at {baseline_path}")
+            return model
+        except Exception as exc:
+            logger.warning(f"Zone 1 : échec déchiffrement ({exc}), fallback .pth…")
 
-    # ============================================================
-    # ZONE 1: TENTATIVE DE CHARGEMENT DEPUIS STOCKAGE CRYPTÉ
-    # ZONE 2: VÉRIFICATION SIGNATURE RSA-4096
-    # ============================================================
-    secured_loaded = False
+    # ── 2. Chargement .pth avec vérification signature RSA-4096 ──
+    candidate_paths = [
+        models_dir / "best_secured_model.pth",
+        models_dir / "final_secured_model.pth",
+    ]
 
-    logger.info("Starting secured model loading process...")
-    logger.info("ZONE 1: Attempting encrypted storage loading (AES-256-GCM)")
+    for pth in candidate_paths:
+        if not pth.exists():
+            continue
+        sig_path = pth.with_suffix(".pth").parent / (pth.stem + "_signature.bin")
+        pub_path = pth.with_suffix(".pth").parent / (pth.stem + "_public_key.pem")
 
-    # 1. Essayer de charger depuis le stockage chiffré (prioritaire)
-    if os.path.exists(encrypted_secured_path):
-        try:
-            logger.info(f"Encrypted model found at {encrypted_secured_path}")
-            storage = EncryptedStorage(password="SecureAI_2024_Production")
+        signature_verified = False
 
-            # Créer un fichier temporaire pour le déchiffrement
-            temp_decrypted_path = os.path.join(project_root, "models", "secured", ".temp_decrypted.pth")
+        if sig_path.exists() and pub_path.exists():
+            try:
+                from cryptography.hazmat.primitives import serialization, hashes
+                from cryptography.hazmat.primitives.asymmetric import padding
 
-            # Charger les métadonnées du fichier chiffré
-            metadata_path = encrypted_secured_path.replace('.enc', '_metadata.json')
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    import json
-                    metadata = json.load(f)
-
-                logger.info(f"Decrypting model with algorithm: {metadata.get('algorithm', 'unknown')}")
-
-                # Déchiffrer le modèle
-                storage.decrypt_pytorch_model(
-                    encrypted_secured_path,
-                    temp_decrypted_path,
-                    metadata
+                model_bytes = pth.read_bytes()
+                signature = sig_path.read_bytes()
+                public_key = serialization.load_pem_public_key(pub_path.read_bytes())
+                public_key.verify(
+                    signature,
+                    model_bytes,
+                    padding.PSS(
+                        mgf=padding.MGF1(hashes.SHA256()),
+                        salt_length=padding.PSS.MAX_LENGTH,
+                    ),
+                    hashes.SHA256(),
                 )
-
-                logger.info("Model decrypted successfully")
-
-                # Charger le modèle déchiffré
-                models_loaded["secured"] = ModelLoader.load_mobilenetv2_checkpoint(
-                    temp_decrypted_path,
-                    device=str(device)
-                )
-
-                # Nettoyer le fichier temporaire
-                if os.path.exists(temp_decrypted_path):
-                    os.remove(temp_decrypted_path)
-
-                logger.info("Secured model loaded from encrypted storage (AES-256-GCM)")
-
-                # Log audit
+                signature_verified = True
+                logger.info(f"Zone 2 : signature RSA-4096 vérifiée pour {pth.name}.")
                 audit_logger.log_event(
-                    event_type=EventType.MODEL_LOADED.value,
+                    event_type=EventType.SECURITY_CHECK.value,
                     severity=SeverityLevel.INFO,
-                    description="Secured model loaded from encrypted storage",
-                    metadata={
-                        "model_type": "secured",
-                        "encryption": "AES-256-GCM",
-                        "source": "encrypted_storage",
-                        "device": str(device)
-                    }
+                    description="Model RSA-4096 signature verified",
+                    metadata={"model": pth.name, "algorithm": "RSA-4096-PSS-SHA256"},
                 )
-                secured_loaded = True
+            except Exception as exc:
+                logger.error(f"Zone 2 : signature invalide pour {pth.name} ({exc}). Modèle rejeté.")
+                audit_logger.log_event(
+                    event_type=EventType.SECURITY_ALERT.value,
+                    severity=SeverityLevel.CRITICAL,
+                    description="Model signature verification FAILED – possible tampering",
+                    metadata={"model": pth.name, "error": str(exc)},
+                )
+                continue  # ne pas charger un modèle dont la signature est invalide
+        else:
+            logger.warning(f"Zone 2 : aucun fichier de signature pour {pth.name}. Chargement sans vérification.")
 
-        except Exception as e:
-            logger.warning(f"Failed to load from encrypted storage: {e}")
-            logger.info("Falling back to standard loading...")
+        try:
+            model = ModelLoader.load_mobilenetv2_checkpoint(str(pth), device=str(device))
+            logger.info(f"Modèle sécurisé chargé depuis {pth.name} (signé={signature_verified}).")
             audit_logger.log_event(
-                event_type=EventType.SYSTEM_ERROR.value,
-                severity=SeverityLevel.WARNING,
-                description="Failed to load from encrypted storage, falling back",
-                metadata={"error": str(e)}
+                event_type=EventType.MODEL_LOADED.value,
+                severity=SeverityLevel.INFO,
+                description="Secured model loaded from .pth",
+                metadata={"model": pth.name, "signature_verified": signature_verified, "device": str(device)},
             )
+            return model
+        except Exception as exc:
+            logger.error(f"Impossible de charger {pth}: {exc}")
 
-    # 2. Fallback: Charger depuis les fichiers .pth standards avec vérification signature
-    if not secured_loaded:
-        logger.info("ZONE 2: Loading from standard .pth files with RSA-4096 signature verification")
+    logger.critical("Aucun modèle sécurisé trouvé. L'API démarrera sans modèle.")
+    audit_logger.log_event(
+        event_type=EventType.SYSTEM_ERROR.value,
+        severity=SeverityLevel.CRITICAL,
+        description="No secured model could be loaded at startup",
+        metadata={"searched": [str(p) for p in candidate_paths]},
+    )
+    return None
 
-        for secured_path in secured_paths:
-            if os.path.exists(secured_path):
-                try:
-                    logger.info(f"Attempting to load secured model from {secured_path}")
 
-                    # ZONE 2: Vérifier la signature RSA-4096 si disponible
-                    signature_verified = False
-                    sig_path = secured_path.replace('.pth', '_signature.bin')
-                    pub_key_path = secured_path.replace('.pth', '_public_key.pem')
+@app.on_event("startup")
+async def startup():
+    global _model
+    logger.info(f"Démarrage API – device={device}")
+    _model = _load_secured_model()
+    if _model is None:
+        logger.warning("API démarrée SANS modèle chargé – /predict retournera 503.")
 
-                    if os.path.exists(sig_path) and os.path.exists(pub_key_path):
-                        logger.info("ZONE 2: RSA-4096 signature files detected, verifying integrity...")
 
-                        try:
-                            from cryptography.hazmat.primitives import serialization, hashes
-                            from cryptography.hazmat.primitives.asymmetric import padding
-
-                            # Charger le modèle et la signature
-                            with open(secured_path, 'rb') as f:
-                                model_bytes = f.read()
-                            with open(sig_path, 'rb') as f:
-                                signature = f.read()
-                            with open(pub_key_path, 'rb') as f:
-                                public_key = serialization.load_pem_public_key(f.read())
-
-                            # Vérifier la signature
-                            public_key.verify(
-                                signature,
-                                model_bytes,
-                                padding.PSS(
-                                    mgf=padding.MGF1(hashes.SHA256()),
-                                    salt_length=padding.PSS.MAX_LENGTH
-                                ),
-                                hashes.SHA256()
-                            )
-
-                            logger.info("ZONE 2: RSA-4096 signature verified successfully - Model integrity confirmed")
-                            signature_verified = True
-
-                            # Log audit de la vérification
-                            audit_logger.log_event(
-                                event_type=EventType.SECURITY_CHECK.value,
-                                severity=SeverityLevel.INFO,
-                                description="Model signature verified successfully",
-                                metadata={
-                                    "model_path": secured_path,
-                                    "signature_algorithm": "RSA-4096-PSS-SHA256",
-                                    "verification_status": "VALID"
-                                }
-                            )
-
-                        except Exception as e:
-                            logger.error(f"ZONE 2: Signature verification failed: {e}")
-                            audit_logger.log_event(
-                                event_type=EventType.SECURITY_ALERT.value,
-                                severity=SeverityLevel.CRITICAL,
-                                description="Model signature verification FAILED - Possible tampering detected",
-                                metadata={
-                                    "model_path": secured_path,
-                                    "error": str(e)
-                                }
-                            )
-                            # Ne pas charger le modèle si la signature est invalide
-                            continue
-                    else:
-                        logger.warning("ZONE 2: No signature files found - Loading without verification")
-
-                    # Charger le modèle
-                    models_loaded["secured"] = ModelLoader.load_mobilenetv2_checkpoint(
-                        secured_path,
-                        device=str(device)
-                    )
-
-                    logger.info(f"Secured model loaded successfully from {secured_path}")
-
-                    # Log audit
-                    audit_logger.log_event(
-                        event_type=EventType.MODEL_LOADED.value,
-                        severity=SeverityLevel.INFO,
-                        description="Secured model loaded successfully",
-                        metadata={
-                            "model_type": "secured",
-                            "model_path": secured_path,
-                            "signature_verified": signature_verified,
-                            "device": str(device)
-                        }
-                    )
-
-                    secured_loaded = True
-                    break
-
-                except Exception as e:
-                    logger.error(f"Failed to load secured model from {secured_path}: {e}")
-                    audit_logger.log_event(
-                        event_type=EventType.SYSTEM_ERROR.value,
-                        severity=SeverityLevel.WARNING,
-                        description="Failed to load secured model",
-                        metadata={"error": str(e), "model_path": secured_path}
-                    )
-
-    if not secured_loaded:
-        logger.warning("Secured model not found in any location")
-        audit_logger.log_event(
-            event_type=EventType.SYSTEM_ERROR.value,
-            severity=SeverityLevel.WARNING,
-            description="No secured model could be loaded",
-            metadata={"searched_paths": secured_paths}
-        )
-
-    logger.info(f"Model loading complete: {len(models_loaded)} model(s) loaded")
-    logger.info(f"Available models: {list(models_loaded.keys())}")
-
-# Configuration CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Middleware de sécurité (WAF + Détection d'anomalies)
-app.add_middleware(SecurityMiddleware)
-
-# Middleware d'audit pour logger tous les accès API
+# ─────────────────────────────────────────────
+# Middleware d'audit (toutes les requêtes)
+# ─────────────────────────────────────────────
 @app.middleware("http")
 async def audit_middleware(request: Request, call_next):
-    """
-    Middleware qui log tous les accès à l'API
-    Traçabilité complète : qui, quoi, quand
-    """
-    start_time = time.time()
-
-    # Récupération des infos client
+    start = time.time()
     client_ip = request.client.host if request.client else "unknown"
 
-    # Extraction de l'utilisateur authentifié depuis le JWT
     user_id = "anonymous"
-    user_role = "guest"
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        user_data = verify_token(token)
-        if user_data:
-            user_id = user_data.get("sub", "anonymous")
-            user_role = user_data.get("role", "guest")
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        payload = verify_token(auth.split(" ", 1)[1])
+        if payload:
+            user_id = payload.get("sub", "anonymous")
 
-    try:
-        # Exécution de la requête
-        response = await call_next(request)
+    response = await call_next(request)
 
-        # Calcul du temps de réponse
-        response_time_ms = (time.time() - start_time) * 1000
-
-        # Log de l'accès API
+    elapsed_ms = (time.time() - start) * 1000
+    endpoint = request.url.path
+    if endpoint not in ("/metrics", "/health"):
         audit_logger.log_api_access(
-            endpoint=str(request.url.path),
+            endpoint=endpoint,
             method=request.method,
             status_code=response.status_code,
-            user_id="anonymous",  # À remplacer par user authentifié
+            user_id=user_id,
             client_ip=client_ip,
-            response_time_ms=response_time_ms
+            response_time_ms=elapsed_ms,
+        )
+        logger.info(
+            f"{request.method} {endpoint} → {response.status_code} "
+            f"({elapsed_ms:.0f}ms) user={user_id} ip={client_ip}"
         )
 
-        return response
+    request_count.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
+    request_duration.labels(endpoint=endpoint).observe(time.time() - start)
+    return response
 
-    except Exception as e:
-        # Log des erreurs
-        response_time_ms = (time.time() - start_time) * 1000
-        audit_logger.log_api_access(
-            endpoint=str(request.url.path),
-            method=request.method,
-            status_code=500,
-            user_id="anonymous",
-            client_ip=client_ip,
-            response_time_ms=response_time_ms
-        )
-        raise
 
-@app.get("/")
+# ─────────────────────────────────────────────
+# Endpoints de base
+# ─────────────────────────────────────────────
+@app.get("/", tags=["system"])
 async def root():
-    request_count.labels(method="GET", endpoint="/", status="200").inc()
-    return {"message": "Secure Detection API", "status": "running"}
+    return {
+        "service": "Secure AI Detection System",
+        "model": "MobileNetV2 – Adversarial Training (FGSM/PGD)",
+        "security_zones": ["Zone1-Data", "Zone2-Training", "Zone4-Inference", "Zone5-Audit"],
+        "status": "running",
+        "model_loaded": _model is not None,
+    }
 
-@app.get("/health")
-async def health_check():
-    request_count.labels(method="GET", endpoint="/health", status="200").inc()
-    return {"status": "healthy"}
 
-@app.get("/metrics")
+@app.get("/health", tags=["system"])
+async def health():
+    if _model is None:
+        return JSONResponse(status_code=503, content={"status": "degraded", "reason": "model_not_loaded"})
+    return {"status": "healthy", "model": "secured", "device": str(device)}
+
+
+@app.get("/metrics", tags=["system"])
 async def metrics():
-    """Endpoint pour les métriques Prometheus"""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
-@app.post("/predict/{model_type}")
-async def predict(model_type: str, file: UploadFile = File(...), request: Request = None):
-    """
-    Endpoint de prédiction avec audit complet
-    model_type: 'baseline' ou 'secured'
 
-    Chaque prédiction est auditée avec :
-    - Hash SHA-256 de l'image (traçabilité sans stocker l'image)
-    - Modèle utilisé et sa version
-    - Résultat et niveau de confiance
-    - Temps de traitement
-    - IP du client (pour détection d'abus)
+# ─────────────────────────────────────────────
+# Endpoint de prédiction (Zone 4 : inférence sécurisée)
+# ─────────────────────────────────────────────
+@app.post("/predict", tags=["detection"])
+async def predict(
+    file: UploadFile = File(...),
+    request: Request = None,
+):
     """
-    start_time = time.time()
+    Zone 4 – Inférence sécurisée.
+
+    - Validation du type MIME et de l'intégrité de l'image
+    - Hash SHA-256 de l'image pour audit (jamais l'image elle-même)
+    - Prédiction : 'safe' ou 'dangerous'
+    - Audit complet horodaté (audit_id retourné)
+    """
+    start = time.time()
     client_ip = request.client.host if request and request.client else "unknown"
 
-    # Extraction de l'utilisateur authentifié
     user_id = "anonymous"
     user_role = "guest"
     if request:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-            user_data = verify_token(token)
-            if user_data:
-                user_id = user_data.get("sub", "anonymous")
-                user_role = user_data.get("role", "guest")
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            payload = verify_token(auth.split(" ", 1)[1])
+            if payload:
+                user_id = payload.get("sub", "anonymous")
+                user_role = payload.get("role", "guest")
+
+    # ── Vérification modèle disponible ───────────────────────────
+    if _model is None:
+        raise HTTPException(status_code=503, detail="Modèle non disponible – contactez l'administrateur.")
+
+    # ── Validation WAF du nom de fichier (Zone 4) ────────────────
+    from src.security.waf import waf as _waf
+    if file.filename and not _waf.validator.is_safe_filename(file.filename):
+        attack_blocked.labels(reason="suspicious_filename").inc()
+        audit_logger.log_event(
+            event_type="attack_detected",
+            severity=SeverityLevel.SECURITY_ALERT,
+            description=f"WAF: suspicious filename blocked — {file.filename}",
+            user_id=user_id,
+            client_ip=client_ip,
+            metadata={"filename": file.filename, "reason": "suspicious_filename"},
+        )
+        raise HTTPException(status_code=400, detail="Nom de fichier suspect détecté par le WAF.")
+
+    # ── Validation du fichier (Zone 4) ───────────────────────────
+    if not file.content_type or not file.content_type.startswith("image/"):
+        audit_logger.log_validation_failed(
+            image_filename=file.filename,
+            reason=f"Content-Type invalide : {file.content_type}",
+            user_id=user_id,
+            client_ip=client_ip,
+        )
+        raise HTTPException(status_code=400, detail="Le fichier doit être une image (image/*).")
+
+    image_data = await file.read()
 
     try:
-        if model_type not in ['baseline', 'secured']:
-            # Log de validation échouée
-            audit_logger.log_validation_failed(
-                image_filename=file.filename,
-                reason=f"Invalid model type: {model_type}",
-                user_id=user_id,
-                client_ip=client_ip
-            )
-            request_count.labels(method="POST", endpoint="/predict", status="400").inc()
-            raise HTTPException(status_code=400, detail="Invalid model type")
-
-        # Validation du fichier
-        if not file.content_type or not file.content_type.startswith('image/'):
-            # Log de validation échouée
-            audit_logger.log_validation_failed(
-                image_filename=file.filename,
-                reason=f"Invalid content type: {file.content_type}",
-                user_id=user_id,
-                client_ip=client_ip
-            )
-            request_count.labels(method="POST", endpoint="/predict", status="400").inc()
-            raise HTTPException(status_code=400, detail="Le fichier doit être une image")
-
-        # Lecture du fichier image
-        image_data = await file.read()
-
-        try:
-            image = Image.open(io.BytesIO(image_data))
-        except Exception as e:
-            # Log de validation échouée
-            audit_logger.log_validation_failed(
-                image_filename=file.filename,
-                reason=f"Cannot open image: {str(e)}",
-                user_id=user_id,
-                client_ip=client_ip
-            )
-            raise HTTPException(status_code=400, detail="Image corrompue ou format invalide")
-
-        # Vérifier que le modèle est chargé
-        if model_type not in models_loaded:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Model '{model_type}' not loaded. Available models: {list(models_loaded.keys())}"
-            )
-
-        # Prédiction avec le vrai modèle PyTorch
-        processing_start = time.time()
-
-        try:
-            # Préprocesser l'image
-            image = image.convert('RGB')
-            image_tensor = transform(image).unsqueeze(0)  # Ajouter batch dimension
-            image_tensor = image_tensor.to(device)
-
-            # Obtenir le modèle
-            model = models_loaded[model_type]
-
-            # Faire la prédiction
-            with torch.no_grad():
-                outputs = model(image_tensor)
-                probabilities = torch.softmax(outputs, dim=1)
-                predicted_class = torch.argmax(probabilities, dim=1).item()
-                confidence = probabilities[0][predicted_class].item()
-
-            # Mapper la classe prédite (0 = safe, 1 = dangerous)
-            prediction = "safe" if predicted_class == 0 else "dangerous"
-
-            processing_duration = time.time() - processing_start
-            processing_time_ms = processing_duration * 1000
-
-            # Mettre à jour les métriques de précision (valeurs réelles des modèles)
-            if model_type == "baseline":
-                model_accuracy.labels(model_type="baseline").set(96.08)  # Clean accuracy du baseline
-            else:  # secured
-                model_accuracy.labels(model_type="secured").set(96.08)  # Clean accuracy du secured
-
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Erreur lors de la prédiction: {str(e)}"
-            )
-
-        # 🔒 AUDIT : Log de la prédiction pour traçabilité légale
-        audit_id = audit_logger.log_prediction(
-            image_data=image_data,
+        image = Image.open(io.BytesIO(image_data)).convert("RGB")
+    except Exception as exc:
+        audit_logger.log_validation_failed(
             image_filename=file.filename,
-            model_type=model_type,
-            prediction=prediction,
-            confidence=confidence,
-            processing_time_ms=processing_time_ms,
+            reason=f"Image illisible : {exc}",
             user_id=user_id,
-            user_role=user_role,
             client_ip=client_ip,
-            additional_metadata={
-                "image_format": image.format,
-                "image_size": image.size,
-                "image_mode": image.mode
-            }
         )
+        raise HTTPException(status_code=400, detail="Image corrompue ou format non supporté.")
 
-        # Mise à jour des métriques Prometheus
-        prediction_count.labels(model_type=model_type, prediction=prediction).inc()
-        processing_time.labels(model_type=model_type).observe(processing_duration)
-        request_count.labels(method="POST", endpoint="/predict", status="200").inc()
+    # ── Inférence (Zone 4) ───────────────────────────────────────
+    proc_start = time.time()
+    with torch.no_grad():
+        tensor = transform(image).unsqueeze(0).to(device)
+        outputs = _model(tensor)
+        probs = torch.softmax(outputs, dim=1)
+        pred_class = torch.argmax(probs, dim=1).item()
+        confidence = probs[0][pred_class].item()
 
-        response = {
-            "model": model_type,
-            "prediction": prediction,
-            "confidence": round(confidence, 3),
-            "processing_time_ms": round(processing_time_ms),
-            "image_info": {
-                "format": image.format,
-                "size": image.size,
-                "mode": image.mode
-            },
-            # Ajout de l'audit_id pour traçabilité
-            "audit_id": audit_id
-        }
+    prediction = "safe" if pred_class == 0 else "dangerous"
+    proc_ms = (time.time() - proc_start) * 1000
 
-        # Mesurer le temps total de la requête
-        total_duration = time.time() - start_time
-        request_duration.labels(method="POST", endpoint="/predict").observe(total_duration)
+    # ── Détection d'entrées adversariales (Zone 4) ───────────────
+    adversarial_flagged = False
+    adversarial_score = 0.0
+    try:
+        import numpy as np
+        img_array = np.array(image).astype(float)
+        # Laplacian variance – les perturbations adversariales ajoutent du bruit HF
+        laplacian = (
+            img_array[:-2, 1:-1] + img_array[2:, 1:-1]
+            + img_array[1:-1, :-2] + img_array[1:-1, 2:]
+            - 4 * img_array[1:-1, 1:-1]
+        )
+        noise_score = float(np.var(laplacian) / (np.var(img_array) + 1e-6))
+        adversarial_score = round(noise_score, 4)
+        # Seuil heuristique : bruit très élevé + confiance faible
+        if noise_score > 50.0 and confidence < 0.65:
+            adversarial_flagged = True
+            attack_blocked.labels(reason="adversarial_input_detected").inc()
+            audit_logger.log_attack_detected(
+                image_data=image_data,
+                image_filename=file.filename,
+                attack_type="adversarial_perturbation",
+                confidence=min(noise_score / 100.0, 1.0),
+                detection_method="laplacian_noise_analysis",
+                user_id=user_id,
+                client_ip=client_ip,
+                blocked=False,
+            )
+    except Exception:
+        pass
 
-        return response
+    # ── Audit (Zone 5) ───────────────────────────────────────────
+    audit_id = audit_logger.log_prediction(
+        image_data=image_data,
+        image_filename=file.filename,
+        model_type="secured",
+        prediction=prediction,
+        confidence=confidence,
+        processing_time_ms=proc_ms,
+        user_id=user_id,
+        user_role=user_role,
+        client_ip=client_ip,
+        additional_metadata={
+            "image_size": list(image.size),
+            "image_mode": image.mode,
+            "adversarial_flagged": adversarial_flagged,
+            "adversarial_noise_score": adversarial_score,
+        },
+    )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        request_count.labels(method="POST", endpoint="/predict", status="500").inc()
-        raise HTTPException(status_code=500, detail=f"Erreur lors du traitement: {str(e)}")
+    prediction_count.labels(prediction=prediction, source="api").inc()
+    processing_time.observe((time.time() - proc_start))
 
-# Endpoint de test pour l'interface
-@app.get("/test")
-async def test_endpoint():
-    """Endpoint de test simple"""
-    request_count.labels(method="GET", endpoint="/test", status="200").inc()
-    return {"message": "API fonctionnelle", "timestamp": time.time()}
+    return {
+        "model": "secured",
+        "prediction": prediction,
+        "confidence": round(confidence, 4),
+        "processing_time_ms": round(proc_ms, 1),
+        "image_info": {"size": list(image.size), "mode": image.mode},
+        "adversarial_flagged": adversarial_flagged,
+        "adversarial_noise_score": adversarial_score,
+        "audit_id": audit_id,
+    }
 
 
-# ============================================================
-# ENDPOINTS D'AUDIT - Zone 5 : Gouvernance et Surveillance
-# ============================================================
-
-@app.get("/audit/logs")
+# ─────────────────────────────────────────────
+# Endpoints d'Audit – Zone 5 : Gouvernance
+# ─────────────────────────────────────────────
+@app.get("/audit/logs", tags=["audit"])
 async def get_audit_logs(
     limit: int = 50,
     event_type: Optional[str] = None,
-    severity: Optional[str] = None
+    severity: Optional[str] = None,
 ):
-    """
-    Consulter les logs d'audit récents
-
-    Args:
-        limit: Nombre de logs à retourner (max 1000)
-        event_type: Filtrer par type d'événement (prediction, attack_detected, etc.)
-        severity: Filtrer par gravité (info, warning, critical, security_alert)
-
-    Returns:
-        Liste des événements d'audit
-    """
+    limit = min(limit, 1000)
+    et_filter = None
+    sv_filter = None
     try:
-        # Validation des paramètres
-        if limit > 1000:
-            limit = 1000
-
-        # Conversion des filtres en Enum si fournis
-        event_type_filter = None
-        severity_filter = None
-
         if event_type:
-            try:
-                event_type_filter = EventType(event_type)
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid event_type: {event_type}")
-
+            et_filter = EventType(event_type)
         if severity:
-            try:
-                severity_filter = SeverityLevel(severity)
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid severity: {severity}")
+            sv_filter = SeverityLevel(severity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
-        # Requête des logs
-        logs = audit_logger.query_logs(
-            event_type=event_type_filter,
-            severity=severity_filter,
-            limit=limit
-        )
-
-        return {
-            "count": len(logs),
-            "logs": logs,
-            "filters_applied": {
-                "event_type": event_type,
-                "severity": severity,
-                "limit": limit
-            }
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des logs: {str(e)}")
+    logs = audit_logger.query_logs(event_type=et_filter, severity=sv_filter, limit=limit)
+    return {"count": len(logs), "logs": logs, "filters": {"event_type": event_type, "severity": severity}}
 
 
-@app.get("/audit/stats")
-async def get_audit_statistics():
-    """
-    Statistiques sur les logs d'audit
-
-    Returns:
-        Statistiques agrégées :
-        - Nombre total d'événements
-        - Répartition par type
-        - Répartition par gravité
-        - Nombre d'attaques détectées
-        - Nombre de prédictions
-        - Confiance moyenne
-    """
-    try:
-        stats = audit_logger.get_statistics()
-
-        return {
-            "statistics": stats,
-            "generated_at": datetime.utcnow().isoformat() + "Z"
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul des statistiques: {str(e)}")
+@app.get("/audit/stats", tags=["audit"])
+async def get_audit_stats():
+    return {"statistics": audit_logger.get_statistics(), "generated_at": datetime.utcnow().isoformat() + "Z"}
 
 
-@app.get("/audit/search")
-async def search_audit_logs(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    event_type: Optional[str] = None,
-    user_id: Optional[str] = None,
-    limit: int = 100
-):
-    """
-    Recherche avancée dans les logs d'audit
-
-    Args:
-        start_date: Date de début (ISO 8601 format)
-        end_date: Date de fin (ISO 8601 format)
-        event_type: Type d'événement
-        user_id: ID utilisateur
-        limit: Nombre de résultats max
-
-    Returns:
-        Résultats de la recherche
-    """
-    try:
-        # Conversion des dates
-        start_dt = None
-        end_dt = None
-
-        if start_date:
-            try:
-                start_dt = datetime.fromisoformat(start_date.replace('Z', ''))
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid start_date format: {start_date}")
-
-        if end_date:
-            try:
-                end_dt = datetime.fromisoformat(end_date.replace('Z', ''))
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid end_date format: {end_date}")
-
-        # Conversion event_type
-        event_type_filter = None
-        if event_type:
-            try:
-                event_type_filter = EventType(event_type)
-            except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid event_type: {event_type}")
-
-        # Recherche
-        logs = audit_logger.query_logs(
-            start_date=start_dt,
-            end_date=end_dt,
-            event_type=event_type_filter,
-            user_id=user_id,
-            limit=limit
-        )
-
-        return {
-            "count": len(logs),
-            "results": logs,
-            "query": {
-                "start_date": start_date,
-                "end_date": end_date,
-                "event_type": event_type,
-                "user_id": user_id,
-                "limit": limit
-            }
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la recherche: {str(e)}")
-
-
-@app.get("/audit/recent-attacks")
+@app.get("/audit/recent-attacks", tags=["audit"])
 async def get_recent_attacks(limit: int = 20):
-    """
-    Récupérer les attaques détectées récemment
-
-    Args:
-        limit: Nombre d'attaques à retourner
-
-    Returns:
-        Liste des attaques détectées
-    """
-    try:
-        attacks = audit_logger.query_logs(
-            event_type=EventType.ATTACK_DETECTED,
-            limit=limit
-        )
-
-        return {
-            "count": len(attacks),
-            "attacks": attacks,
-            "severity": "CRITICAL" if len(attacks) > 0 else "INFO"
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des attaques: {str(e)}")
+    attacks = audit_logger.query_logs(event_type=EventType.ATTACK_DETECTED, limit=limit)
+    return {"count": len(attacks), "attacks": attacks}
 
 
-@app.get("/audit/predictions/{audit_id}")
-async def get_prediction_details(audit_id: str):
-    """
-    Récupérer les détails d'une prédiction spécifique via son audit_id
-
-    Args:
-        audit_id: ID unique de l'événement d'audit
-
-    Returns:
-        Détails complets de la prédiction
-    """
-    try:
-        # Recherche dans tous les logs
-        all_logs = audit_logger.query_logs(limit=10000)
-
-        # Recherche de l'audit_id spécifique
-        for log in all_logs:
-            if log.get('audit_id') == audit_id:
-                return {
-                    "found": True,
-                    "details": log
-                }
-
-        # Non trouvé
-        raise HTTPException(status_code=404, detail=f"Audit ID not found: {audit_id}")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération: {str(e)}")
+@app.get("/audit/predictions/{audit_id}", tags=["audit"])
+async def get_prediction_by_id(audit_id: str):
+    logs = audit_logger.query_logs(limit=10000)
+    for log in logs:
+        if log.get("audit_id") == audit_id:
+            return {"found": True, "details": log}
+    raise HTTPException(status_code=404, detail=f"audit_id non trouvé : {audit_id}")
 
 
-@app.post("/audit/export")
-async def export_audit_trail(
+@app.post("/audit/export", tags=["audit"])
+async def export_audit(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    format: str = "json"
+    format: str = "json",
 ):
-    """
-    Export des logs d'audit pour audit externe
-    (Conformité légale, audits de sécurité)
-
-    Args:
-        start_date: Date de début
-        end_date: Date de fin
-        format: Format d'export (json/csv)
-
-    Returns:
-        Fichier d'export
-    """
-    try:
-        if format not in ["json", "csv"]:
-            raise HTTPException(status_code=400, detail="Format must be 'json' or 'csv'")
-
-        # Conversion des dates
-        start_dt = None
-        end_dt = None
-
-        if start_date:
-            start_dt = datetime.fromisoformat(start_date.replace('Z', ''))
-        if end_date:
-            end_dt = datetime.fromisoformat(end_date.replace('Z', ''))
-
-        # Export
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = f"logs/audit/export_audit_{timestamp}.{format}"
-
-        audit_logger.export_audit_trail(
-            output_file=output_file,
-            start_date=start_dt,
-            end_date=end_dt,
-            format=format
-        )
-
-        return {
-            "success": True,
-            "export_file": output_file,
-            "format": format,
-            "generated_at": datetime.utcnow().isoformat() + "Z"
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
+    if format not in ("json", "csv"):
+        raise HTTPException(status_code=400, detail="Format doit être 'json' ou 'csv'.")
+    start_dt = datetime.fromisoformat(start_date.replace("Z", "")) if start_date else None
+    end_dt = datetime.fromisoformat(end_date.replace("Z", "")) if end_date else None
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out = f"logs/audit/export_{ts}.{format}"
+    audit_logger.export_audit_trail(output_file=out, start_date=start_dt, end_date=end_dt, format=format)
+    return {"success": True, "export_file": out, "generated_at": datetime.utcnow().isoformat() + "Z"}
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("src.api.app:app", host="0.0.0.0", port=8000, reload=False)

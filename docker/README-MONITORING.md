@@ -109,7 +109,7 @@ docker-compose -f docker-compose.monitoring.yml down -v
 - Rate limit blocks (si nombreux = attaque potentielle)
 
 ### Modèles IA
-- Précision (baseline >82%, secured >94%)
+- Précision du modèle sécurisé (>94%)
 - Temps de traitement (<5s)
 - Distribution des prédictions
 

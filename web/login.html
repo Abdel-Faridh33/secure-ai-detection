@@ -3,354 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Secure AI Detection</title>
+    <title>Connexion – SecureDetect</title>
+    <link rel="stylesheet" href="assets/css/shared.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f5;
-            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            min-height: 100vh;
+            padding: 1.5rem;
         }
 
-        .login-container {
-            background: white;
-            border-radius: 12px;
-            padding: 50px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 450px;
+        .auth-wrapper {
             width: 100%;
+            max-width: 400px;
         }
 
-        .header {
+        .auth-logo {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 1.75rem;
         }
 
-        .header h1 {
-            color: #333;
-            font-size: 2.2em;
-            margin-bottom: 10px;
-            color: #2c3e50;
-            
-            
-        }
-
-        .header p {
-            color: #666;
-            font-size: 1em;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 0.95em;
-        }
-
-        input[type="text"],
-        input[type="password"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        input[type="text"]:focus,
-        input[type="password"]:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        }
-
-        .login-btn {
-            width: 100%;
-            background: #3498db; color: white;
-            border: none;
-            padding: 16px 30px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-            font-weight: 600;
-        }
-
-        .login-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            background: #2980b9; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-        }
-
-        .login-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .error-message {
-            background: #fee;
-            color: #c33;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-            border-left: 4px solid #c33;
-        }
-
-        .error-message.show {
-            display: block;
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .demo-credentials {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-            border: 2px dashed #3498db;
-        }
-
-        .demo-credentials h3 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 1em;
-            text-align: center;
-        }
-
-        .credential-item {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            display: flex;
-            justify-content: space-between;
+        .auth-logo-icon {
+            width: 52px;
+            height: 52px;
+            background: var(--primary);
+            border-radius: 14px;
+            display: inline-flex;
             align-items: center;
-            border: 1px solid #e0e0e0;
+            justify-content: center;
+            margin-bottom: 0.875rem;
         }
 
-        .credential-item:last-child {
-            margin-bottom: 0;
+        .auth-logo-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: white;
         }
 
-        .credential-item strong {
-            color: #3498db;
-        }
-
-        .role-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-
-        .role-admin {
-            background: #fee;
-            color: #c33;
-        }
-
-        .role-agent {
-            background: #eff;
-            color: #3a3;
-        }
-
-        .role-guest {
-            background: #eef;
-            color: #66a;
-        }
-
-        .register-link {
-            text-align: center;
-            margin-top: 25px;
-            color: #666;
-            font-size: 0.95em;
-        }
-
-        .register-link a {
-            color: #3498db;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s ease;
-        }
-
-        .register-link a:hover {
-            color: #2980b9;
-            text-decoration: underline;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        .loading.show {
+        .auth-logo-name {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.5px;
             display: block;
         }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+        .auth-logo-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-top: 0.2rem;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .auth-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
         }
 
-        @media (max-width: 768px) {
-            .login-container {
-                padding: 30px;
-            }
+        .auth-card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
 
-            .header h1 {
-                font-size: 1.8em;
-            }
+        .auth-card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.75rem;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.25rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 480px) {
+            .auth-card { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="header">
-            <h2>Secured Wapon Detection AI</h2>
-            <p>Authentification requise</p>
+    <div class="auth-wrapper">
+        <div class="auth-logo">
+            <div class="auth-logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+            </div>
+            <span class="auth-logo-name">SecureDetect</span>
+            <span class="auth-logo-sub">Plateforme de détection sécurisée</span>
         </div>
 
-        <div class="error-message" id="errorMessage">
-            Identifiants incorrects
-        </div>
+        <div class="auth-card">
+            <p class="auth-card-title">Connexion</p>
+            <p class="auth-card-subtitle">Saisissez vos identifiants pour accéder à la plateforme.</p>
 
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="username">Nom d'utilisateur</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
-            </div>
+            <div class="error-message" id="errorMessage">Identifiants incorrects</div>
 
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" id="password" name="password" required autocomplete="current-password">
-            </div>
-
-            <button type="submit" class="login-btn" id="loginBtn">
-                Se connecter
-            </button>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-            </div>
-        </form>
-<!-- 
-        <div class="demo-credentials">
-            <h3>🔑 Comptes de démonstration</h3>
-            <div class="credential-item">
-                <div>
-                    <strong>admin</strong> / admin123
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Nom d'utilisateur</label>
+                    <input type="text" id="username" name="username" required
+                           autocomplete="username" placeholder="Votre identifiant">
                 </div>
-                <span class="role-badge role-admin">ADMIN</span>
-            </div>
-            <div class="credential-item">
-                <div>
-                    <strong>agent1</strong> / agent123
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" required
+                           autocomplete="current-password" placeholder="••••••••">
                 </div>
-                <span class="role-badge role-agent">AGENT</span>
-            </div>
-            <div class="credential-item">
-                <div>
-                    <strong>guest</strong> / guest123
+                <button type="submit" class="btn btn-primary" id="loginBtn">Se connecter</button>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
                 </div>
-                <span class="role-badge role-guest">GUEST</span>
-            </div>
-        </div> -->
+            </form>
 
-        <div class="register-link">
-            Vous n'avez pas de compte?
-            <a href="register.html">S'inscrire</a>
+            <div class="auth-footer">
+                Pas encore de compte ? <a href="register.html">S'inscrire</a>
+            </div>
         </div>
     </div>
 
+    <script src="assets/js/api.js?v=2"></script>
     <script>
-        // Configuration de l'API adaptée à l'environnement
-        const API_BASE_URL = window.location.port === '8080'
-            ? 'http://localhost/api/secured'  // Production via Nginx
-            : 'http://localhost:9800';        // Dev direct
-
-        const loginForm = document.getElementById('loginForm');
+        const loginForm    = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
-        const loginBtn = document.getElementById('loginBtn');
-        const loading = document.getElementById('loading');
+        const loginBtn     = document.getElementById('loginBtn');
+        const loading      = document.getElementById('loading');
 
-        loginForm.addEventListener('submit', async function(e) {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
-            // Masquer l'erreur précédente
             errorMessage.classList.remove('show');
-
-            // Afficher le loading
             loginBtn.disabled = true;
             loading.classList.add('show');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/security/login`, {
+                const res = await fetch(`${API_BASE_URL}/security/login`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        password: password
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
                 });
+                if (!res.ok) throw new Error();
+                const result = await res.json();
 
-                if (!response.ok) {
-                    throw new Error('Authentification échouée');
-                }
-
-                const result = await response.json();
-
-                // Sauvegarder le token et les infos utilisateur
                 localStorage.setItem('access_token', result.access_token);
                 localStorage.setItem('user_role', result.role);
                 localStorage.setItem('user_name', username);
                 localStorage.setItem('user_permissions', JSON.stringify(result.permissions));
 
-                // Redirection selon le rôle
-                if (result.role === 'admin') {
-                    window.location.href = 'admin.html';
-                } else {
-                    window.location.href = 'index.html';
-                }
-
-            } catch (error) {
-                console.error('Erreur de connexion:', error);
+                window.location.href = result.role === 'admin' ? 'admin.html' : 'index.html';
+            } catch {
                 errorMessage.textContent = 'Identifiants incorrects. Veuillez réessayer.';
                 errorMessage.classList.add('show');
             } finally {
@@ -359,40 +181,21 @@
             }
         });
 
-        // Vérifier si déjà connecté
-        window.addEventListener('load', function() {
+        window.addEventListener('load', () => {
             const token = localStorage.getItem('access_token');
-            const role = localStorage.getItem('user_role');
-
-            if (token) {
-                // Vérifier si le token est toujours valide
-                fetch(`${API_BASE_URL}/security/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Token valide, redirection selon le rôle
-                        if (role === 'admin') {
-                            window.location.href = 'admin.html';
-                        } else {
-                            window.location.href = 'index.html';
-                        }
+            const role  = localStorage.getItem('user_role');
+            if (!token) return;
+            fetch(`${API_BASE_URL}/security/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+                .then(r => {
+                    if (r.ok) {
+                        window.location.href = role === 'admin' ? 'admin.html' : 'index.html';
                     } else {
-                        // Token invalide, le supprimer
-                        localStorage.removeItem('access_token');
-                        localStorage.removeItem('user_role');
-                        localStorage.removeItem('user_name');
-                        localStorage.removeItem('user_permissions');
+                        ['access_token', 'user_role', 'user_name', 'user_permissions']
+                            .forEach(k => localStorage.removeItem(k));
                     }
                 })
-                .catch(error => {
-                    console.error('Erreur de vérification du token:', error);
-                });
-            }
+                .catch(() => {});
         });
     </script>
 </body>
 </html>
-

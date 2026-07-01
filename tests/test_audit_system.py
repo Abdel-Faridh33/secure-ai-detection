@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests du système d'audit
 
 Teste toutes les fonctionnalités :
@@ -52,7 +52,7 @@ def test_log_prediction(audit_logger_test, sample_image_data):
     audit_id = audit_logger_test.log_prediction(
         image_data=sample_image_data,
         image_filename="test_image.jpg",
-        model_type="baseline",
+        model_type="secured",
         prediction="safe",
         confidence=0.85,
         processing_time_ms=150.5,
@@ -99,7 +99,7 @@ def test_log_validation_failed(audit_logger_test):
 def test_log_api_access(audit_logger_test):
     """Test du logging d'un accès API"""
     audit_id = audit_logger_test.log_api_access(
-        endpoint="/predict/baseline",
+        endpoint="/predict",
         method="POST",
         status_code=200,
         user_id="api_user",
@@ -143,7 +143,7 @@ def test_query_logs_with_date_filter(audit_logger_test, sample_image_data):
     audit_logger_test.log_prediction(
         image_data=sample_image_data,
         image_filename="dated_test.jpg",
-        model_type="baseline",
+        model_type="secured",
         prediction="safe",
         confidence=0.88,
         processing_time_ms=120
@@ -197,7 +197,7 @@ def test_statistics(audit_logger_test, sample_image_data):
         audit_logger_test.log_prediction(
             image_data=sample_image_data,
             image_filename=f"test_{i}.jpg",
-            model_type="baseline",
+            model_type="secured",
             prediction="safe",
             confidence=0.8 + i * 0.05,
             processing_time_ms=100
@@ -267,7 +267,7 @@ def test_log_file_rotation(audit_logger_test, sample_image_data):
         audit_logger_test.log_prediction(
             image_data=sample_image_data * 100,  # Grande image
             image_filename=f"large_test_{i}.jpg",
-            model_type="baseline",
+            model_type="secured",
             prediction="safe",
             confidence=0.85,
             processing_time_ms=100,
@@ -286,7 +286,7 @@ def test_severity_levels(audit_logger_test, sample_image_data):
     audit_logger_test.log_prediction(
         image_data=sample_image_data,
         image_filename="normal.jpg",
-        model_type="baseline",
+        model_type="secured",
         prediction="safe",
         confidence=0.9,
         processing_time_ms=100
@@ -329,7 +329,7 @@ def test_audit_id_uniqueness(audit_logger_test, sample_image_data):
         audit_id = audit_logger_test.log_prediction(
             image_data=sample_image_data,
             image_filename=f"unique_test_{i}.jpg",
-            model_type="baseline",
+            model_type="secured",
             prediction="safe",
             confidence=0.8,
             processing_time_ms=100
@@ -346,7 +346,7 @@ def test_json_format_validation(audit_logger_test, sample_image_data):
     audit_logger_test.log_prediction(
         image_data=sample_image_data,
         image_filename="json_test.jpg",
-        model_type="baseline",
+        model_type="secured",
         prediction="safe",
         confidence=0.85,
         processing_time_ms=100

@@ -1,62 +1,92 @@
 groups:
   - name: ai_detection_alerts
     rules:
-      # High Error Rate Alert
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "🚨 Taux d'erreur élevé détecté"
-          description: "Le service {{ $labels.job }} a un taux d'erreur de {{ $value | humanizePercentage }} depuis plus de 2 minutes."
 
-      # High Response Time Alert
-      - alert: HighResponseTime
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "⏱️ Temps de réponse élevé"
-          description: "Le P95 du temps de réponse pour {{ $labels.job }} est de {{ $value }}s."
+      # ── Service ──────────────────────────────────────────────────
 
-      # Service Down Alert
       - alert: ServiceDown
-        expr: up == 0
+        expr: up{job="secured-api"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "🔴 Service indisponible"
-          description: "Le service {{ $labels.job }} sur {{ $labels.instance }} est indisponible."
+          summary: "API sécurisée indisponible"
+          description: "Le service {{ $labels.job }} sur {{ $labels.instance }} est indisponible depuis 1 minute."
 
-      # Low Model Accuracy Alert
-      - alert: LowModelAccuracy
-        expr: ai_model_accuracy < 0.8
-        for: 10m
+      # ── Taux d'erreur ─────────────────────────────────────────────
+
+      - alert: HighErrorRate
+        expr: >
+          rate(http_requests_total{status=~"5.."}[5m])
+          / rate(http_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taux d'erreurs 5xx élevé"
+          description: "Le service {{ $labels.job }} a un taux d'erreur de {{ $value | humanizePercentage }} depuis plus de 2 minutes."
+
+      - alert: HighResponseTime
+        expr: >
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "🎯 Précision du modèle faible"
-          description: "La précision du modèle {{ $labels.model_type }} est de {{ $value | humanizePercentage }}."
+          summary: "Temps de réponse P95 élevé (> 2 s)"
+          description: "Le P95 de latence est de {{ $value | humanizeDuration }}."
 
-      # High Prediction Load Alert
+      # ── WAF / Sécurité ────────────────────────────────────────────
+
+      - alert: WAFHighBlockingRate
+        expr: rate(security_attacks_blocked_total[5m]) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux de blocage WAF élevé"
+          description: "Le WAF bloque plus de {{ $value | humanize }} requêtes/sec depuis 2 minutes (raison: {{ $labels.reason }})."
+
+      - alert: WAFBlockingSpike
+        expr: increase(security_attacks_blocked_total[1m]) > 20
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pic d'attaques WAF détecté"
+          description: "{{ $value | humanize }} requêtes bloquées en 1 minute (raison: {{ $labels.reason }})."
+
+      # ── Prédictions IA ────────────────────────────────────────────
+
+      - alert: HighDangerousDetectionRate
+        expr: >
+          rate(ai_predictions_total{prediction="dangerous"}[5m])
+          / rate(ai_predictions_total[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proportion élevée de prédictions 'dangereuses'"
+          description: "Plus de 50 % des prédictions sont 'dangerous' depuis 5 minutes — trafic suspect potentiel."
+
       - alert: HighPredictionLoad
-        expr: rate(ai_model_predictions_total[5m]) > 100
+        expr: rate(ai_predictions_total[5m]) > 10
         for: 5m
         labels:
           severity: info
         annotations:
-          summary: "📈 Charge de prédictions élevée"
-          description: "Le modèle {{ $labels.model_type }} traite {{ $value }} prédictions/sec."
+          summary: "Charge de prédictions élevée"
+          description: "Le modèle traite {{ $value | humanize }} prédictions/sec."
 
-      # Memory Usage Alert
+      # ── Ressources ────────────────────────────────────────────────
+
       - alert: HighMemoryUsage
-        expr: process_resident_memory_bytes / (1024*1024*1024) > 2
+        expr: process_resident_memory_bytes / (1024 * 1024 * 1024) > 2
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "💾 Utilisation mémoire élevée"
-          description: "Le service {{ $labels.job }} utilise {{ $value | humanize }}Go de mémoire."
+          summary: "Utilisation mémoire élevée (> 2 Go)"
+          description: "Le service {{ $labels.job }} utilise {{ $value | humanize }} Go de mémoire résidente."

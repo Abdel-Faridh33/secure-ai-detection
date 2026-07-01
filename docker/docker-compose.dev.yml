@@ -1,94 +1,103 @@
-# Docker Compose pour l'environnement de développement
+# Docker Compose – Développement
+# Stack minimale orientée développement/debug du modèle Secured uniquement
+
 services:
-  # Environnement de développement principal
-  dev:
+
+  # ─── API Secured (hot-reload, debug) ──────────────────────────
+  api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dev
-    container_name: secure-ai-dev1
+    container_name: secure-ai-dev
     volumes:
       - ../:/workspace
-      - ~/.ssh:/root/.ssh:ro  # Pour git
+      - ~/.ssh:/root/.ssh:ro
       - ../docker/entrypoint-dev.sh:/entrypoint.sh:ro
     ports:
-      - "127.0.0.1:9800:8000"  # API
-      - "127.0.0.1:5680:5678"  # Debug
+      - "0.0.0.0:9800:8000"    # API – accessible réseau local pour tests multi-IP
+      - "127.0.0.1:5680:5678"   # debugpy (VSCode attach)
     environment:
       - PYTHONPATH=/workspace
-      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
-      - JWT_SECRET=${JWT_SECRET:-secure-ai-detection-jwt-secret-key-change-in-production-2024}
+      - MODEL_TYPE=secured
+      - ENABLE_DEFENSES=true
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      - MODEL_ENCRYPTION_KEY=${MODEL_ENCRYPTION_KEY:-SecureAI_2024_Production}
+      - ALLOWED_ORIGINS=*
+      - RATE_LIMIT=50
+      - LOG_LEVEL=DEBUG
     stdin_open: true
     tty: true
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
-  # Tests automatisés
+  # ─── Tests automatisés ────────────────────────────────────────
   test:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
-    container_name: secure-ai-test1
+    container_name: secure-ai-test
     volumes:
       - ../:/app
       - test-results:/app/htmlcov
+    environment:
+      - PYTHONPATH=/app
+      - MODEL_TYPE=secured
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
-  # Base de données pour logs et métriques
+  # ─── PostgreSQL – Audit trail (dev) ───────────────────────────
   postgres:
     image: postgres:15-alpine
-    container_name: secure-ai-db1
+    container_name: secure-ai-db-dev
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-secure_ai}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_change_in_prod}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_password_dev}
       - POSTGRES_DB=${POSTGRES_DB:-ai_metrics}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-dev-data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5433:5432"
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
-  # Redis pour cache et queue
+  # ─── Redis – Cache (dev) ──────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: secure-ai-redis1
+    container_name: secure-ai-redis-dev
     ports:
       - "127.0.0.1:6380:6379"
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
-  # Monitoring
+  # ─── Prometheus (dev) ─────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
-    container_name: secure-ai-prometheus1
+    container_name: secure-ai-prometheus-dev
     volumes:
       - ../configs/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ../configs/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
-      - prometheus-data:/prometheus
+      - prometheus-dev-data:/prometheus
     ports:
       - "127.0.0.1:9890:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
+  # ─── Grafana (dev) ────────────────────────────────────────────
   grafana:
     image: grafana/grafana:latest
-    container_name: secure-ai-grafana1
+    container_name: secure-ai-grafana-dev
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=redis-datasource
-      - GF_SERVER_HTTP_PORT=3000
+      - GF_USERS_ALLOW_SIGN_UP=false
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/ai-detection-dashboard.json
     volumes:
-      - grafana-data:/var/lib/grafana
+      - grafana-dev-data:/var/lib/grafana
       - ../configs/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
       - ../configs/monitoring/grafana-datasources:/etc/grafana/provisioning/datasources
     ports:
@@ -96,44 +105,30 @@ services:
     depends_on:
       - prometheus
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
-  # Node Exporter pour métriques système
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: secure-ai-node-exporter1
-    ports:
-      - "127.0.0.1:9100:9100"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    networks:
-      - secure-ai-network
-
-  # Interface Web
+  # ─── Interface Web (dev) ──────────────────────────────────────
   web:
     build:
       context: ..
       dockerfile: docker/Dockerfile.web
-    container_name: secure-ai-web1
+    container_name: secure-ai-web-dev
     ports:
-      - "127.0.0.1:8800:80"
+      - "0.0.0.0:8800:80"
+    volumes:
+      - ../web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - dev
+      - api
     networks:
-      - secure-ai-network
+      - secure-ai-dev
 
 networks:
-  secure-ai-network:
+  secure-ai-dev:
     driver: bridge
 
 volumes:
-  postgres-data:
-  prometheus-data:
-  grafana-data:
+  postgres-dev-data:
+  prometheus-dev-data:
+  grafana-dev-data:
   test-results:

@@ -210,28 +210,28 @@
       {
         "id": 8,
         "type": "stat",
-        "title": "Model Accuracy - Baseline",
+        "title": "Attaques Bloquées (WAF)",
         "gridPos": {"x": 12, "y": 12, "w": 6, "h": 4},
         "targets": [
           {
-            "expr": "ai_model_accuracy{model_type=\"baseline\"}",
-            "legendFormat": "Baseline",
+            "expr": "sum(increase(security_attacks_blocked_total[1h]))",
+            "legendFormat": "Attaques bloquées",
             "refId": "A"
           }
         ],
         "options": {
           "graphMode": "area",
-          "colorMode": "value"
+          "colorMode": "background"
         },
         "fieldConfig": {
           "defaults": {
-            "unit": "percentunit",
+            "unit": "short",
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": null, "color": "red"},
-                {"value": 0.75, "color": "yellow"},
-                {"value": 0.85, "color": "green"}
+                {"value": null, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 50, "color": "red"}
               ]
             }
           }

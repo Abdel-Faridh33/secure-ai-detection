@@ -97,7 +97,7 @@ EARLY_STOPPING_PATIENCE = 8     # Activé
 
 ### Clean Accuracy: 96.08% ✅
 
-**Meilleure que le baseline (95.59%)**
+**Excellente accuracy propre (référence non sécurisée : 95.59%)**
 - Le modèle généralise bien
 - Pas de trade-off négatif sur données propres
 - Adversarial training améliore la généralisation
@@ -215,7 +215,7 @@ Epoch 16: Train 99.78% | Val 89.46% | Gap 10.33%
 
 **Ce modèle offre:**
 1. ✅ **Robustesse FGSM de 78%** (excellente)
-2. ✅ Clean accuracy de 96% (meilleure que baseline)
+2. ✅ Clean accuracy de 96% (supérieure à la référence non sécurisée)
 3. ✅ Dégradation faible sous attaque (17.65%)
 4. ✅ Bon équilibre performance/sécurité
 
@@ -226,7 +226,7 @@ Epoch 16: Train 99.78% | Val 89.46% | Gap 10.33%
 
 **Limites connues:**
 - Pas de protection PGD (par choix de design)
-- Légère baisse de val acc vs baseline (-3%)
+- Trade-off minimal adversarial training (-3% val acc vs modèle non sécurisé)
 
 ---
 

@@ -214,22 +214,25 @@ class SecuredTrainer:
         # 1. Vérification statistique des données
         print("\n[1/2] Verification statistique des donnees d'entrainement...")
         try:
-            verifier = DataVerifier(train_data_dir)
-            data_report = verifier.verify_data()
+            verifier = DataVerifier()
+            data_report = verifier.verify_dataset(train_data_dir)
 
-            print(f"  Score de qualite: {data_report['quality_score']:.1f}/100")
-            print(f"  Classes equilibrees: {data_report['chi_square_test']['passed']}")
-            print(f"  Distribution normale: {data_report['ks_test']['passed']}")
+            classes_ok = data_report.statistical_tests.get('class_balance', {}).get('passed', False)
+            dist_ok    = data_report.statistical_tests.get('distribution_similarity', {}).get('passed', True)
+
+            print(f"  Score de qualite: {data_report.quality_score:.1f}/100")
+            print(f"  Classes equilibrees: {classes_ok}")
+            print(f"  Distribution normale: {dist_ok}")
 
             # Seuil de qualité minimum
-            if data_report['quality_score'] < 60:
+            if data_report.quality_score < 60:
                 self._log_security_event("DATA_QUALITY_LOW",
-                    f"ALERTE: Qualite des donnees trop faible ({data_report['quality_score']:.1f}/100)",
+                    f"ALERTE: Qualite des donnees trop faible ({data_report.quality_score:.1f}/100)",
                     "WARNING")
                 print(f"  AVERTISSEMENT: Score de qualite bas!")
             else:
                 self._log_security_event("DATA_QUALITY_OK",
-                    f"Donnees validees - Score: {data_report['quality_score']:.1f}/100", "INFO")
+                    f"Donnees validees - Score: {data_report.quality_score:.1f}/100", "INFO")
                 print(f"  VALIDATION: Donnees de bonne qualite")
 
         except Exception as e:
@@ -372,7 +375,7 @@ class SecuredTrainer:
         self._log_security_event("MODEL_CREATE_START", "Creation modele securise", "INFO")
 
         # MobileNetV2 avec pré-entraînement pour transfert learning sécurisé
-        # Architecture légère (3.5M params) identique au baseline pour comparaison équitable
+        # Architecture légère (3.5M params), 25ms CPU, adapté au déploiement sécurisé
         self.model = models.mobilenet_v2(pretrained=True)
 
         # Freeze early layers pour transfer learning
@@ -919,7 +922,7 @@ def train_secured():
     # Source: train_secured_colab.ipynb - Configuration FGSM OPTIMIZED
     config = {
         'epochs': 30,                       # Plus d'epochs pour convergence avec adversarial training
-        'batch_size': 32,                   # Batch size identique au baseline pour comparaison
+        'batch_size': 32,                   # Batch size standard pour MobileNetV2
         'learning_rate': 0.0001,            # OPTIMISÉ: Réduit de 0.001 -> 0.0001 (meilleure convergence)
         'adversarial_training': True,       # Activé suite vulnérabilité détectée (47.55% degradation)
         'adversarial_epsilon': 0.08,        # OPTIMISÉ: Augmenté de 0.03 -> 0.08 (robustesse améliorée)
@@ -953,7 +956,7 @@ def train_secured():
         # Recommandations de sécurité
         print("\nRecommandations de securite:")
         print("  - Tester robustesse avec attack_secured.py")
-        print("  - Comparer performance avec baseline")
+        print("  - Evaluer robustesse contre FGSM/PGD")
         print("  - Valider conformite Zone 3 (tests)")
         
     except Exception as e:

@@ -26,7 +26,7 @@ def main():
         print()
         print("Guide rapide:")
         print("  1. Selectionnez une image (JPG, PNG, GIF)")
-        print("  2. Choisissez le modele (Baseline ou Securise)")
+        print("  2. Chargez une image (JPG, PNG)")
         print("  3. Cliquez sur 'Analyser l'image'")
         print("  4. Consultez les resultats de detection")
         print()

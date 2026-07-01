@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de génération de trafic pour tester le monitoring
-Génère des requêtes vers l'API de détection d'objets pour observer les métriques dans Grafana
+Génère des requêtes vers l'API sécurisée pour observer les métriques dans Grafana
 """
 
 import requests
@@ -77,9 +77,9 @@ def load_test_images():
 
     return images
 
-def make_prediction_request(image_path, model_type="baseline"):
-    """Effectue une requête de prédiction avec une image"""
-    endpoint = f"{API_BASE_URL}/predict/{model_type}"
+def make_prediction_request(image_path):
+    """Effectue une requête de prédiction avec une image vers l'API sécurisée"""
+    endpoint = f"{API_BASE_URL}/predict"
 
     try:
         with open(image_path, 'rb') as f:
@@ -120,12 +120,11 @@ def make_prediction_request(image_path, model_type="baseline"):
         }
 
 def generate_traffic(images):
-    """Génère du trafic vers l'API"""
+    """Génère du trafic vers l'API sécurisée"""
     print("\n" + "=" * 70)
     print("DÉMARRAGE DE LA GÉNÉRATION DE TRAFIC".center(70))
     print("=" * 70 + "\n")
 
-    # Préparer une liste de toutes les images disponibles
     all_images = []
     for category, img_list in images.items():
         for img in img_list:
@@ -140,8 +139,6 @@ def generate_traffic(images):
         "success": 0,
         "failed": 0,
         "total_duration": 0,
-        "baseline_count": 0,
-        "secured_count": 0,
         "categories": {
             "safe": 0,
             "dangerous": 0,
@@ -150,28 +147,17 @@ def generate_traffic(images):
     }
 
     for i in range(REQUESTS_COUNT):
-        # Choisir une image aléatoire
         category, image_path = random.choice(all_images)
 
-        # Alterner entre baseline et secured (70% baseline, 30% secured)
-        model_type = "baseline" if random.random() < 0.7 else "secured"
+        result = make_prediction_request(image_path)
 
-        # Effectuer la requête
-        result = make_prediction_request(image_path, model_type)
-
-        # Mise à jour des statistiques
         stats["total"] += 1
         if result["success"]:
             stats["success"] += 1
             stats["total_duration"] += result["duration"]
             stats["categories"][category] += 1
 
-            if model_type == "baseline":
-                stats["baseline_count"] += 1
-            else:
-                stats["secured_count"] += 1
-
-            print(f"[{i+1}/{REQUESTS_COUNT}] [OK] {model_type.upper()} - "
+            print(f"[{i+1}/{REQUESTS_COUNT}] [OK] SECURED - "
                   f"{category.upper()} - "
                   f"Prediction: {result.get('prediction', 'N/A')} - "
                   f"Confidence: {result.get('confidence', 0):.3f} - "
@@ -179,14 +165,12 @@ def generate_traffic(images):
                   f"Audit ID: {result.get('audit_id', 'N/A')}")
         else:
             stats["failed"] += 1
-            print(f"[{i+1}/{REQUESTS_COUNT}] [FAIL] {model_type.upper()} - "
+            print(f"[{i+1}/{REQUESTS_COUNT}] [FAIL] SECURED - "
                   f"{category.upper()} - "
                   f"Error: {result.get('error', result.get('status_code', 'Unknown'))}")
 
-        # Attendre avant la prochaine requête
         time.sleep(DELAY_BETWEEN_REQUESTS)
 
-    # Afficher les statistiques finales
     print("\n" + "=" * 70)
     print("STATISTIQUES FINALES".center(70))
     print("=" * 70)
@@ -195,9 +179,6 @@ def generate_traffic(images):
     print(f"Échecs:                {stats['failed']} ({stats['failed']/stats['total']*100:.1f}%)")
     if stats['success'] > 0:
         print(f"Durée moyenne:         {stats['total_duration']/stats['success']:.3f}s")
-    print(f"\nRequêtes par modèle:")
-    print(f"  - Baseline:          {stats['baseline_count']}")
-    print(f"  - Secured:           {stats['secured_count']}")
     print(f"\nRequêtes par catégorie d'image:")
     print(f"  - Safe:              {stats['categories']['safe']}")
     print(f"  - Dangerous:         {stats['categories']['dangerous']}")
@@ -214,7 +195,6 @@ def main():
     """Fonction principale"""
     print_header()
 
-    # Tests préliminaires
     print("Tests préliminaires...")
     if not test_health():
         print("\n[FAIL] L'API n'est pas accessible. Veuillez demarrer l'API avant de generer du trafic.")
@@ -225,7 +205,6 @@ def main():
 
     print("\n[OK] Tests preliminaires reussis!\n")
 
-    # Charger les images de test
     print("Chargement des images de test...")
     images = load_test_images()
 
@@ -236,14 +215,12 @@ def main():
 
     print(f"\n[OK] {total_images} images chargees!\n")
 
-    # Attendre confirmation
     try:
         input("Appuyez sur Entrée pour commencer la génération de trafic (Ctrl+C pour annuler)...")
     except KeyboardInterrupt:
         print("\n\nAnnulation...")
         return
 
-    # Générer le trafic
     try:
         generate_traffic(images)
     except KeyboardInterrupt:

@@ -67,7 +67,7 @@ class AnomalyDetector:
         Args:
             ip: Adresse IP du client
             endpoint: Endpoint appelé
-            model_type: Type de modèle utilisé (baseline/secured)
+            model_type: Type de modèle utilisé (secured)
             prediction: Résultat de la prédiction
             confidence: Niveau de confiance
             status_code: Code de statut HTTP

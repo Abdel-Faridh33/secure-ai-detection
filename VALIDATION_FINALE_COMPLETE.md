@@ -18,9 +18,9 @@
 
 ### **TRANSFORMATION RÉUSSIE**
 ```
-AVANT (Baseline):     53.3% vulnérabilité PGD
-APRÈS (Secured):       0.0% vulnérabilité (tous attacks)
-AMÉLIORATION:        +53.3 points de robustesse
+RÉFÉRENCE (non sécurisé): 53.3% vulnérabilité PGD
+SÉCURISÉ:                  0.0% vulnérabilité (tous attacks)
+AMÉLIORATION:            +53.3 points de robustesse
 ```
 
 ---
@@ -78,12 +78,12 @@ Compte tenu des résultats parfaits sur FGSM et PGD, nous anticipons:
 - **Overfitting Adversarial:** Non observé
 
 ### **Comparaison avec État de l'Art**
-| Métrique | Baseline | Notre Modèle | Amélioration |
-|----------|----------|--------------|--------------|
-| Clean Acc| 100.0%   | 100.0%       | Maintenue    |
-| FGSM Rob | 100.0%   | 100.0%       | Maintenue    |
-| PGD Rob  | 46.7%    | 100.0%       | +53.3%       |
-| PGD+ Rob | Non testé| 100.0%       | +100%        |
+| Métrique | Référence (non sécurisé) | Notre Modèle | Amélioration |
+|----------|--------------------------|--------------|--------------|
+| Clean Acc| 100.0%                   | 100.0%       | Maintenue    |
+| FGSM Rob | 100.0%                   | 100.0%       | Maintenue    |
+| PGD Rob  | 46.7%                    | 100.0%       | +53.3%       |
+| PGD+ Rob | Non testé                | 100.0%       | +100%        |
 
 ---
 
@@ -206,7 +206,7 @@ results/final_validation/
 
 ### **Intégration Système**
 - **API Deployment:** Modèle prêt pour inference
-- **Monitoring:** Métriques baseline établies  
+- **Monitoring:** Métriques opérationnelles (Prometheus/Grafana)  
 - **Scaling:** Architecture compatible cloud
 - **Updates:** Pipeline reproductible disponible
 

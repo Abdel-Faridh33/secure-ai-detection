@@ -2,7 +2,7 @@
 
 ## Etat Actuel : PARTIELLEMENT FONCTIONNEL
 
-Votre projet possede 4 workflows GitHub Actions configures.
+Votre projet possede 3 workflows GitHub Actions configures.
 
 ## Workflows Existants
 
@@ -11,15 +11,11 @@ Votre projet possede 4 workflows GitHub Actions configures.
 - Actions: Build Docker + Tests securite
 - Status: Partiellement fonctionnel
 
-### 2. Baseline Comparison
-- Declenchement: Manuel uniquement
-- Status: Necessite script run_all_experiments.py
-
-### 3. Scheduled Security Audit
+### 2. Scheduled Security Audit
 - Declenchement: Hebdomadaire (dimanche minuit)
 - Status: Fonctionnel
 
-### 4. Dependency Check  
+### 3. Dependency Check  
 - Declenchement: Quotidien
 - Status: Fonctionnel
 

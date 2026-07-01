@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lance la comparaison complète dans Docker
 
-echo "📊 Comparaison baseline vs secured dans Docker..."
+echo "📊 Évaluation robustesse du modèle sécurisé dans Docker..."
 
 # Lancer tous les experiments
 docker-compose -f docker/docker-compose.dev.yml run --rm dev \

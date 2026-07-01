@@ -38,20 +38,20 @@ def analyze_fgsm_results():
     print(f"  Robustness:           {100 - fgsm_results['attack_success_rate']:.2f}%")
     print(f"  Degradation:          {fgsm_results['robustness_degradation']:.2f}%")
 
-    # Baseline comparison
-    baseline_fgsm = results['baseline_vulnerabilities']['fgsm_success']
     secured_fgsm = fgsm_results['attack_success_rate']
+    # Valeur de référence (modèle non sécurisé, thèse section 4.2)
+    reference_fgsm = results.get('reference_vulnerabilities', {}).get('fgsm_success', 73.2)
 
-    print("\n📈 COMPARAISON AVEC BASELINE:")
+    print("\n📈 COMPARAISON AVEC RÉFÉRENCE (modèle non sécurisé):")
     print("-"*70)
-    print(f"  Baseline FGSM Success:  {baseline_fgsm:.2f}%")
+    print(f"  Référence FGSM Success: {reference_fgsm:.2f}%")
     print(f"  Secured FGSM Success:   {secured_fgsm:.2f}%")
-    print(f"  Différence:             {secured_fgsm - baseline_fgsm:+.2f}%")
+    print(f"  Réduction:              {reference_fgsm - secured_fgsm:+.2f}%")
 
-    if secured_fgsm > baseline_fgsm:
-        print(f"\n  🔴 PROBLÈME: Le modèle secured est PIRE que baseline!")
+    if secured_fgsm > reference_fgsm:
+        print(f"\n  🔴 PROBLÈME: Le modèle secured est PIRE que la référence!")
     else:
-        print(f"\n  ✅ SUCCÈS: Le modèle secured est meilleur que baseline!")
+        print(f"\n  ✅ SUCCÈS: Le modèle secured est plus robuste que la référence!")
 
     print("\n🎯 ANALYSE DU GAP ENTRAÎNEMENT/TEST:")
     print("-"*70)

@@ -20,6 +20,13 @@ ENV PYTHONUNBUFFERED=1
 ENV MODEL_TYPE=secured
 ENV ENABLE_DEFENSES=true
 
+# Utilisateur non-root (principe du moindre privilège)
+RUN useradd -m -r -u 1001 appuser && \
+    mkdir -p /app/logs/audit && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
-CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "2", "--log-level", "warning", "--no-access-log"]

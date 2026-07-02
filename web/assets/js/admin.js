@@ -110,12 +110,15 @@ async function loadUsers() {
 }
 
 function displayUsers(users) {
-    const protected_ = ['admin', 'agent1', 'guest'];
+    const protected_ = ['admin', 'agent1'];
+    const fmtDate = iso => iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
     document.getElementById('usersBody').innerHTML = users.map(u => `
         <tr>
             <td>${u.username}</td>
-            <td>${u.email}</td>
+            <td>${u.email || '—'}</td>
             <td><span class="role-badge role-${u.role}">${u.role}</span></td>
+            <td style="color:var(--text-muted);font-size:.85rem">${fmtDate(u.created_at)}</td>
+            <td style="color:var(--text-muted);font-size:.85rem">${fmtDate(u.last_login)}</td>
             <td>${protected_.includes(u.username)
                 ? '<button class="btn btn-danger btn-sm" disabled>Protégé</button>'
                 : `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.username}')">Supprimer</button>`

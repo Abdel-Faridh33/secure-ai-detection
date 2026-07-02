@@ -62,7 +62,7 @@ class UserManager:
         if len(password) < 8:
             raise ValueError("Le mot de passe doit faire au moins 8 caractères")
 
-        if role not in ['admin', 'operator', 'agent', 'viewer']:
+        if role not in ['admin', 'agent', 'guest']:
             raise ValueError(f"Rôle invalide: {role}")
 
         # Hash du mot de passe avec bcrypt

@@ -219,10 +219,75 @@ def _load_secured_model() -> Optional[torch.nn.Module]:
     return None
 
 
+def _seed_default_users():
+    """Crée les tables users si absentes, puis admin et agent1 si la table est vide."""
+    try:
+        from src.database.connection import get_db_connection
+        db = get_db_connection()
+
+        # Crée les tables si elles n'existent pas encore (migration idempotente)
+        with db.get_cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id                    SERIAL PRIMARY KEY,
+                    username              VARCHAR(50)  NOT NULL UNIQUE,
+                    password_hash         VARCHAR(255) NOT NULL,
+                    role                  VARCHAR(20)  NOT NULL DEFAULT 'guest'
+                                              CHECK (role IN ('admin','agent','guest')),
+                    email                 VARCHAR(255),
+                    full_name             VARCHAR(255),
+                    is_active             BOOLEAN      NOT NULL DEFAULT TRUE,
+                    is_locked             BOOLEAN      NOT NULL DEFAULT FALSE,
+                    failed_login_attempts INTEGER      NOT NULL DEFAULT 0,
+                    created_by            INTEGER,
+                    created_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                    updated_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+                    updated_by            INTEGER,
+                    last_login            TIMESTAMPTZ,
+                    last_password_change  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+                );
+                CREATE TABLE IF NOT EXISTS login_history (
+                    id             SERIAL PRIMARY KEY,
+                    user_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    ip_address     VARCHAR(45),
+                    user_agent     TEXT,
+                    success        BOOLEAN     NOT NULL,
+                    failure_reason VARCHAR(255),
+                    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                CREATE TABLE IF NOT EXISTS active_sessions (
+                    id             SERIAL PRIMARY KEY,
+                    user_id        INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    token_jti      VARCHAR(255) NOT NULL UNIQUE,
+                    expires_at     TIMESTAMPTZ  NOT NULL,
+                    ip_address     VARCHAR(45),
+                    user_agent     TEXT,
+                    is_revoked     BOOLEAN      NOT NULL DEFAULT FALSE,
+                    revoked_at     TIMESTAMPTZ,
+                    revoked_reason VARCHAR(255),
+                    created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+                );
+            """)
+        logger.info("Tables utilisateurs vérifiées / créées.")
+
+        from src.database.user_manager import UserManager
+        manager = UserManager()
+        if manager.list_users(active_only=False):
+            return
+        admin_pwd = os.getenv("ADMIN_PASSWORD", "admin123")
+        agent_pwd = os.getenv("AGENT_PASSWORD", "agent123")
+        manager.create_user("admin",  admin_pwd, "admin", email="admin@secureai.local")
+        manager.create_user("agent1", agent_pwd, "agent", email="agent1@secureai.local")
+        logger.info("Utilisateurs par défaut créés en base (admin, agent1).")
+    except Exception as exc:
+        logger.warning(f"Seeding utilisateurs ignoré (DB non disponible) : {exc}")
+
+
 @app.on_event("startup")
 async def startup():
     global _model
     logger.info(f"Démarrage API – device={device}")
+    _seed_default_users()
     _model = _load_secured_model()
     if _model is None:
         logger.warning("API démarrée SANS modèle chargé – /predict retournera 503.")

@@ -21,6 +21,8 @@ services:
       - MODEL_TYPE=secured
       - ENABLE_DEFENSES=true
       - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - AGENT_PASSWORD=${AGENT_PASSWORD:-agent123}
       - MODEL_ENCRYPTION_KEY=${MODEL_ENCRYPTION_KEY:-SecureAI_2024_Production}
       - ALLOWED_ORIGINS=*
       - RATE_LIMIT=50

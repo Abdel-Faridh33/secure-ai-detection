@@ -35,6 +35,11 @@ class DatabaseConnection:
         if self._pool is None:
             self._initialize_pool()
 
+    def _ensure_pool(self):
+        """Réinitialise le pool s'il est fermé ou invalide."""
+        if self._pool is None or self._pool.closed:
+            self._initialize_pool()
+
     def _initialize_pool(self):
         """Crée le pool de connexions"""
         config = self._get_db_config()
@@ -74,6 +79,7 @@ class DatabaseConnection:
                 cursor = conn.cursor()
                 cursor.execute("SELECT ...")
         """
+        self._ensure_pool()
         conn = None
         try:
             conn = self._pool.getconn()

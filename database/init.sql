@@ -81,3 +81,67 @@ FROM predictions GROUP BY DATE_TRUNC('day', timestamp) ORDER BY day DESC;
 INSERT INTO model_integrity_checks (model_name, notes)
 VALUES ('schema_init', 'DB initialisee - Secure AI Detection System')
 ON CONFLICT DO NOTHING;
+
+-- ──────────────────────────────────────────────────────────────────
+-- Gestion des utilisateurs (Zone 4 – RBAC)
+-- ──────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS users (
+    id                    SERIAL PRIMARY KEY,
+    username              VARCHAR(50)  NOT NULL UNIQUE,
+    password_hash         VARCHAR(255) NOT NULL,
+    role                  VARCHAR(20)  NOT NULL DEFAULT 'guest'
+                              CHECK (role IN ('admin', 'agent', 'guest')),
+    email                 VARCHAR(255),
+    full_name             VARCHAR(255),
+    is_active             BOOLEAN      NOT NULL DEFAULT TRUE,
+    is_locked             BOOLEAN      NOT NULL DEFAULT FALSE,
+    failed_login_attempts INTEGER      NOT NULL DEFAULT 0,
+    created_by            INTEGER,
+    created_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_by            INTEGER,
+    last_login            TIMESTAMPTZ,
+    last_password_change  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_role     ON users(role);
+
+-- Historique de connexion (verrouillage après 5 échecs)
+CREATE TABLE IF NOT EXISTS login_history (
+    id             SERIAL PRIMARY KEY,
+    user_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    ip_address     VARCHAR(45),
+    user_agent     TEXT,
+    success        BOOLEAN     NOT NULL,
+    failure_reason VARCHAR(255),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_login_user_id    ON login_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_login_created_at ON login_history(created_at DESC);
+
+-- Sessions JWT actives (révocation possible)
+CREATE TABLE IF NOT EXISTS active_sessions (
+    id             SERIAL PRIMARY KEY,
+    user_id        INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_jti      VARCHAR(255) NOT NULL UNIQUE,
+    expires_at     TIMESTAMPTZ  NOT NULL,
+    ip_address     VARCHAR(45),
+    user_agent     TEXT,
+    is_revoked     BOOLEAN      NOT NULL DEFAULT FALSE,
+    revoked_at     TIMESTAMPTZ,
+    revoked_reason VARCHAR(255),
+    created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_jti     ON active_sessions(token_jti);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON active_sessions(user_id);
+
+-- Nettoyage automatique des sessions expirées
+CREATE OR REPLACE FUNCTION cleanup_expired_sessions() RETURNS INTEGER AS $$
+DECLARE deleted_count INTEGER;
+BEGIN
+    DELETE FROM active_sessions WHERE expires_at < NOW() AND is_revoked = FALSE;
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql;
